@@ -162,8 +162,8 @@ export function Dashboard({
               <span className="text-sm lg:text-base tracking-tight">{t.nuevoTurno}</span>
             </button>
             <button onClick={onViewReports}
-              className="flex flex-col items-center justify-center gap-2 lg:gap-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 p-5 lg:p-8 rounded-2xl lg:rounded-[2.5rem] font-bold lg:font-black shadow-lg shadow-slate-100 dark:shadow-none transition-all hover:-translate-y-1 active:translate-y-0 group">
-              <div className="w-10 lg:w-12 h-10 lg:h-12 bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 rounded-xl lg:rounded-2xl flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900 group-hover:text-blue-600 transition-all">
+              className="flex flex-col items-center justify-center gap-2 lg:gap-4 bg-gradient-to-br from-white to-sky-50/80 dark:from-slate-800 dark:to-slate-800 border border-sky-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 p-5 lg:p-8 rounded-2xl lg:rounded-[2.5rem] font-bold lg:font-black shadow-lg shadow-sky-100/60 dark:shadow-none transition-all hover:-translate-y-1 active:translate-y-0 group">
+              <div className="w-10 lg:w-12 h-10 lg:h-12 bg-sky-50 dark:bg-slate-900 text-sky-500 dark:text-slate-500 rounded-xl lg:rounded-2xl flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900 group-hover:text-blue-600 transition-all">
                 <PieChart className="w-5 lg:w-6 h-5 lg:h-6" />
               </div>
               <span className="text-sm lg:text-base tracking-tight">{t.reportes}</span>

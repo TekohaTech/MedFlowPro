@@ -86,8 +86,8 @@ export function MonthlyChart({
         >
           <defs>
             <linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="currentColor" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
+              <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.04" />
             </linearGradient>
           </defs>
 
@@ -124,7 +124,6 @@ export function MonthlyChart({
             <path
               d={areaPath}
               fill="url(#area-grad)"
-              className="text-blue-500"
             />
           )}
 
@@ -133,7 +132,7 @@ export function MonthlyChart({
             <path
               d={linePath}
               fill="none"
-              className="text-blue-500"
+              className="text-blue-600"
               stroke="currentColor"
               strokeWidth="2.5"
               strokeLinecap="round"

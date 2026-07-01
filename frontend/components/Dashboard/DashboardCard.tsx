@@ -1,7 +1,7 @@
 import { cn } from '../../lib/utils';
 
 const baseClasses =
-  "bg-white dark:bg-slate-800 p-6 lg:p-8 rounded-2xl lg:rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group";
+  "bg-gradient-to-br from-white via-white to-sky-50/60 dark:bg-slate-800 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-6 lg:p-8 rounded-2xl lg:rounded-[2.5rem] border border-slate-100 dark:border-slate-700 shadow-xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden group";
 
 export function DashboardCard({
   className,
