@@ -15,6 +15,7 @@ interface ReportsPrintViewProps {
   totalGuardias: number;
   totalProcedimientos: number;
   totalInterconsultas: number;
+  totalExtras: number;
   actividades: Transaction[];
   onClose: () => void;
 }
@@ -53,6 +54,7 @@ export function ReportsPrintView({
   totalGuardias,
   totalProcedimientos,
   totalInterconsultas,
+  totalExtras,
   actividades,
   onClose,
 }: ReportsPrintViewProps) {
@@ -116,6 +118,10 @@ export function ReportsPrintView({
               <span style={{ fontWeight: 500 }}>Interconsultas:</span>
               <span style={{ fontWeight: 700 }}>{formatCurrency(totalInterconsultas)}</span>
             </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', ...s.chipBlue, background: '#fffbeb', borderRadius: '0.5rem', padding: '0.75rem' }}>
+              <span style={{ fontWeight: 500 }}>Extras:</span>
+              <span style={{ fontWeight: 700 }}>{formatCurrency(totalExtras)}</span>
+            </div>
           </div>
         </div>
 
@@ -141,12 +147,14 @@ export function ReportsPrintView({
                     {a.type === ShiftType.ACTIVE && 'Guardia'}
                     {a.type === ShiftType.CONSULTATION && 'Proc.'}
                     {a.type === ShiftType.PASSIVE && 'Inter.'}
+                    {a.type === ShiftType.EXTRA && 'Extra'}
                   </td>
                   <td style={{ padding: '0.5rem', ...s.td }}>{a.institution}</td>
                   <td style={{ padding: '0.5rem', fontSize: '0.75rem', ...s.td }}>
                     {a.type === ShiftType.CONSULTATION && a.procedureName}
                     {a.type === ShiftType.PASSIVE && `${a.specialty}${a.patientLocation === 'extraservicio' ? ' (Extra)' : ''}`}
                     {a.type === ShiftType.ACTIVE && `${a.hours}h`}
+                    {a.type === ShiftType.EXTRA && a.conceptName}
                     {a.notes && !/undefined|null|NaN/i.test(a.notes) && a.notes.trim().length > 0 && <span style={{ display: 'block', ...s.tdNote, fontStyle: 'italic' }}>{'\uD83D\uDCDD'} {a.notes}</span>}
                   </td>
                   <td style={{ padding: '0.5rem', textAlign: 'right', fontWeight: 500, ...s.td }}>{formatCurrency(a.amount)}</td>

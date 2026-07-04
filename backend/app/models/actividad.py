@@ -15,6 +15,7 @@ class ActivityType(str, Enum):
     GUARDIA = "guardia"
     PROCEDIMIENTO = "procedimiento"
     INTERCONSULTA = "interconsulta"
+    EXTRA = "extra"
 
 
 class PaymentStatus(str, Enum):
@@ -43,6 +44,11 @@ class ActividadBase(BaseModel):
 
 class ActividadCreate(ActividadBase):
     """Schema para crear actividad"""
+    # Campos específicos de Extra
+    concept_name: Optional[str] = Field(None, max_length=200, description="Nombre del concepto (para tipo extra)")
+    weekday_hours: Optional[int] = Field(None, ge=0, description="Horas en día de semana")
+    weekend_hours: Optional[int] = Field(None, ge=0, description="Horas en fin de semana")
+
     # Campos específicos de Guardia
     hours: Optional[int] = Field(None, ge=1, le=48, description="Horas de guardia")
     hourly_rate: Optional[int] = Field(None, ge=0, description="Valor por hora")
@@ -74,6 +80,9 @@ class ActividadUpdate(BaseModel):
     amount: Optional[int] = Field(None, ge=0)
     status: Optional[PaymentStatus] = None
     notes: Optional[str] = Field(None, max_length=1000)
+    concept_name: Optional[str] = Field(None, max_length=200)
+    weekday_hours: Optional[int] = Field(None, ge=0)
+    weekend_hours: Optional[int] = Field(None, ge=0)
     start_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$")
     end_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$")
     end_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
@@ -90,6 +99,9 @@ class ActividadResponse(ActividadBase):
     updated_at: Optional[datetime] = None
     
     # Campos específicos
+    concept_name: Optional[str] = None
+    weekday_hours: Optional[int] = None
+    weekend_hours: Optional[int] = None
     hours: Optional[int] = None
     hourly_rate: Optional[int] = None
     start_time: Optional[str] = None
@@ -121,6 +133,18 @@ class ActividadStats(BaseModel):
     Pendiente: int
     mes_actual: str
     anio_actual: int
+
+
+class MonthlyRow(BaseModel):
+    """Una fila de la comparativa mensual"""
+    month: str
+    total_ingresos: int
+    total_guardias: int
+    total_procedimientos: int
+    total_interconsultas: int
+    total_extras: int
+    cobrado: int
+    pendiente: int
 
 
 class InstitutionSummary(BaseModel):

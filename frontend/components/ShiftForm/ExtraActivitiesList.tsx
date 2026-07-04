@@ -62,14 +62,16 @@ export function ExtraActivitiesList({ extras, onAdd, onUpdate, onRemove, extraTo
               {extra.type === 'procedimiento' ? (
                 <div className="grid grid-cols-2 gap-2">
                   <input type="text" value={extra.procedureName || ''} onChange={e => onUpdate(extra.id, { procedureName: e.target.value })}
-                    placeholder="Procedimiento" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
+                    placeholder="Procedimiento" title="Nombre del procedimiento realizado (ej: RMN rodilla, ecografía abdominal)"
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                   <input type="text" inputMode="numeric" value={extra.amount || ''} onChange={e => onUpdate(extra.id, { amount: parseInt(e.target.value.replace(/\D/g, '')) || 0 })}
                     placeholder="Monto $" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   <input type="text" value={extra.specialty || ''} onChange={e => onUpdate(extra.id, { specialty: e.target.value })}
-                    placeholder="Especialidad" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
+                    placeholder="Especialidad" title="Especialidad que realizó la interconsulta (ej: Cirugía general, Neurología)"
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                   <input type="text" inputMode="numeric" value={extra.amount || ''} onChange={e => onUpdate(extra.id, { amount: parseInt(e.target.value.replace(/\D/g, '')) || 0 })}
                     placeholder="Monto $" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                 </div>

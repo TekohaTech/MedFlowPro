@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, Stethoscope, UserCheck, Check, X, Pencil, Building2 } from 'lucide-react';
+import { Clock, Stethoscope, UserCheck, Check, X, Pencil, Building2, Info, RotateCcw } from 'lucide-react';
 import { Institution } from '../types';
 import { cn } from '../lib/utils';
 import { api } from '../services/api';
+
+type RateType = 'guardia_semana_rate' | 'guardia_finde_rate' | 'procedimiento_rate' | 'interconsulta_rate';
 
 interface RateEditorProps {
   institution: Institution;
@@ -11,9 +13,13 @@ interface RateEditorProps {
 
 export function RateEditor({ institution, onInstitutionChange }: RateEditorProps) {
   const HELP_ICON = String.fromCharCode(0x1F4A1);
-  const [editingRateType, setEditingRateType] = useState<'guardia_rate' | 'procedimiento_rate' | 'interconsulta_rate' | null>(null);
+  const [editingRateType, setEditingRateType] = useState<RateType | null>(null);
   const [tempRateValue, setTempRateValue] = useState('');
   const [rateSavedFeedback, setRateSavedFeedback] = useState<string | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // Dialog recalcular pendientes
+  const [pendingDialog, setPendingDialog] = useState<{ fromDate: string; loading: boolean; result: string | null } | null>(null);
 
   useEffect(() => {
     if (rateSavedFeedback) {
@@ -22,27 +28,65 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
     }
   }, [rateSavedFeedback]);
 
-  const handleSaveRateEdit = async (type: 'guardia_rate' | 'procedimiento_rate' | 'interconsulta_rate', value: string) => {
+  const handleSaveRateEdit = async (type: RateType, value: string) => {
     const numValue = value ? parseInt(value.replace(/\D/g, '')) : null;
+    const prevValue = institution[type];
     try {
-      const updateData: any = {};
+      const updateData: Partial<Institution> = {};
       updateData[type] = numValue;
       const updated = await api.updateInstitution(institution.id, updateData);
       onInstitutionChange(updated);
-      const labels: Record<string, string> = { guardia_rate: 'Guardia', procedimiento_rate: 'Proced.', interconsulta_rate: 'Interc.' };
+      const labels: Record<string, string> = {
+        guardia_semana_rate: 'Guardia semana',
+        guardia_finde_rate: 'Guardia finde',
+        procedimiento_rate: 'Proced.',
+        interconsulta_rate: 'Interc.',
+      };
       setRateSavedFeedback(`${labels[type]} actualizada ${String.fromCharCode(0x2713)}`);
+
+      // Solo preguntar si cambió tarifa de guardia
+      if (numValue !== prevValue && (type === 'guardia_semana_rate' || type === 'guardia_finde_rate')) {
+        setPendingDialog({
+          fromDate: new Date().toISOString().split('T')[0],
+          loading: false,
+          result: null,
+        });
+      }
     } catch (e) {
       console.error('Error saving rate', e);
     }
     setEditingRateType(null);
   };
 
+  const handleApplyToPending = async () => {
+    if (!pendingDialog) return;
+    setPendingDialog({ ...pendingDialog, loading: true, result: null });
+    try {
+      const res = await api.recalculatePending(institution.id, pendingDialog.fromDate);
+      setPendingDialog({
+        ...pendingDialog,
+        loading: false,
+        result: `✅ ${res.updated_count} guardia${res.updated_count !== 1 ? 's' : ''} actualizada${res.updated_count !== 1 ? 's' : ''}`,
+      });
+    } catch {
+      setPendingDialog({ ...pendingDialog, loading: false, result: '❌ Error al recalcular' });
+    }
+  };
+
+  const RATE_HELP: Record<string, string> = {
+    guardia_semana_rate: 'Valor por hora de guardia en día de semana (lun a vie)',
+    guardia_finde_rate: 'Valor por hora de guardia en fin de semana (sáb o dom)',
+    procedimiento_rate: 'Valor por procedimiento (ej: RMN, ecografía)',
+    interconsulta_rate: 'Valor por interconsulta (ej: evaluación de otra especialidad)',
+  };
+
   const renderRateRow = (
     label: string,
-    type: 'guardia_rate' | 'procedimiento_rate' | 'interconsulta_rate',
+    type: RateType,
     icon: React.ReactNode,
     borderColor: string,
     value: number | null | undefined,
+    showSuffix: boolean = true,
   ) => (
     <div className="flex items-center gap-1">
       {icon}
@@ -67,14 +111,14 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
             className="p-0.5 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
         </div>
       ) : (
-        <span className="flex items-center gap-1 text-slate-500">
+        <span className="flex items-center gap-1 text-slate-500" title={RATE_HELP[type]}>
           {label}:
           {value ? (
-            <span className="text-slate-900 dark:text-white font-bold">${value.toLocaleString('es-AR')}{type === 'guardia_rate' ? '/h' : ''}</span>
+            <span className="text-slate-900 dark:text-white font-bold">${value.toLocaleString('es-AR')}{showSuffix ? '/h' : ''}</span>
           ) : (
             <span className="text-slate-300 italic">—</span>
           )}
-          <button type="button" onClick={() => { setEditingRateType(type); setTempRateValue(value?.toString() || ''); }}
+          <button type="button" title="Editar" onClick={() => { setEditingRateType(type); setTempRateValue(value?.toString() || ''); }}
             className="p-0.5 text-slate-300 hover:text-blue-500 transition-colors">
             <Pencil className="w-2.5 h-2.5" />
           </button>
@@ -91,13 +135,60 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
         <span className="text-[7px] text-slate-300 ml-auto">tocá un valor para editar</span>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
-        {renderRateRow('Guardia', 'guardia_rate', <Clock className="w-3 h-3 text-blue-400" />, 'border-blue-300', institution.guardia_rate)}
+        <div className="flex items-center gap-1">
+          {renderRateRow('Gdia sem', 'guardia_semana_rate', <Clock className="w-3 h-3 text-blue-400" />, 'border-blue-300', institution.guardia_semana_rate ?? institution.guardia_rate)}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowTooltip(!showTooltip)}
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              className="p-0.5 text-slate-300 hover:text-blue-500 transition-colors"
+            >
+              <Info className="w-2.5 h-2.5" />
+            </button>
+            {showTooltip && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-slate-800 dark:bg-slate-700 text-white text-[8px] leading-tight rounded-lg shadow-lg z-50 pointer-events-none">
+                La tarifa se define según el día de inicio de la guardia, no por cada día trabajado.
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700" />
+              </div>
+            )}
+          </div>
+        </div>
+        {renderRateRow('Gdia finde', 'guardia_finde_rate', <Clock className="w-3 h-3 text-blue-400" />, 'border-blue-300', institution.guardia_finde_rate ?? institution.guardia_rate)}
         {renderRateRow('Proced.', 'procedimiento_rate', <Stethoscope className="w-3 h-3 text-purple-400" />, 'border-purple-300', institution.procedimiento_rate)}
         {renderRateRow('Interc.', 'interconsulta_rate', <UserCheck className="w-3 h-3 text-green-400" />, 'border-green-300', institution.interconsulta_rate)}
       </div>
       {rateSavedFeedback && (
         <p className="text-[9px] text-green-600 dark:text-green-400 font-bold animate-in fade-in">{rateSavedFeedback}</p>
       )}
+
+      {/* Dialog: aplicar cambio a guardias pendientes */}
+      {pendingDialog && !pendingDialog.result && (
+        <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 space-y-2 animate-in fade-in slide-in-from-top-2">
+          <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1">
+            <RotateCcw className="w-3 h-3" />
+            ¿Aplicar este cambio a guardias pendientes?
+          </p>
+          <div className="flex items-center gap-2">
+            <input type="date" value={pendingDialog.fromDate}
+              onChange={(e) => setPendingDialog({ ...pendingDialog, fromDate: e.target.value })}
+              className="flex-1 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-700 rounded-lg p-1.5 text-[10px] font-bold text-slate-900 dark:text-white" />
+            <button type="button" onClick={handleApplyToPending} disabled={pendingDialog.loading}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-700 transition-colors disabled:opacity-50">
+              {pendingDialog.loading ? '...' : 'Aplicar'}
+            </button>
+            <button type="button" onClick={() => setPendingDialog(null)}
+              className="px-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-slate-50 transition-colors">
+              No
+            </button>
+          </div>
+        </div>
+      )}
+      {pendingDialog?.result && (
+        <p className="text-[10px] font-bold text-green-600 dark:text-green-400 animate-in fade-in">{pendingDialog.result}</p>
+      )}
+
       <p className="text-[8px] text-slate-400 flex items-center gap-1">
         {HELP_ICON} Las tarifas son solo referencia. Ingresá los valores manualmente abajo.
       </p>

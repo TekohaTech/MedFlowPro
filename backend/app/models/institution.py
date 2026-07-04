@@ -5,7 +5,9 @@ from datetime import datetime
 
 class InstitutionBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200, description="Nombre de la institución")
-    guardia_rate: Optional[int] = Field(None, ge=0, description="Tarifa por hora guardia")
+    guardia_rate: Optional[int] = Field(None, ge=0, description="Tarifa por hora guardia (alias, retrocompatible)")
+    guardia_semana_rate: Optional[int] = Field(None, ge=0, description="Tarifa por hora guardia día de semana")
+    guardia_finde_rate: Optional[int] = Field(None, ge=0, description="Tarifa por hora guardia fin de semana")
     procedimiento_rate: Optional[int] = Field(None, ge=0, description="Tarifa procedimiento")
     interconsulta_rate: Optional[int] = Field(None, ge=0, description="Tarifa interconsulta")
 
@@ -17,6 +19,8 @@ class InstitutionCreate(InstitutionBase):
 class InstitutionUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     guardia_rate: Optional[int] = Field(None, ge=0)
+    guardia_semana_rate: Optional[int] = Field(None, ge=0)
+    guardia_finde_rate: Optional[int] = Field(None, ge=0)
     procedimiento_rate: Optional[int] = Field(None, ge=0)
     interconsulta_rate: Optional[int] = Field(None, ge=0)
     is_active: Optional[bool] = None

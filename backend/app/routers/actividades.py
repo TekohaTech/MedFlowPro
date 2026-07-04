@@ -12,11 +12,37 @@ import logging
 from app.config import settings
 from app.models.actividad import (
     ActividadCreate, ActividadResponse, ActividadUpdate,
-    ActividadStats, ActivityType, PaymentStatus
+    ActividadStats, MonthlyRow, ActivityType, PaymentStatus
 )
 from app.core.security import decode_token
 from app.core.object_id_utils import safe_object_id
 from app.db.mongo import get_database
+
+
+def calculate_guardia_amount(
+    start_date: datetime,
+    hours: int,
+    semana_rate: int | None,
+    finde_rate: int | None,
+    weekday_hours: int | None = None,
+    weekend_hours: int | None = None,
+) -> int:
+    """Calculate guardia amount based on weekday-start rule or split override.
+
+    Default rule: if guardia starts Mon-Fri (weekday() < 5) use semana_rate,
+    if Sat-Sun use finde_rate. When weekday_hours/weekend_hours are provided,
+    use the split calculation instead.
+    """
+    semana_rate = semana_rate or 0
+    finde_rate = finde_rate or 0
+
+    if weekday_hours is not None and weekend_hours is not None:
+        # Override mode: use provided split hours
+        return (weekday_hours * semana_rate) + (weekend_hours * finde_rate)
+
+    # Default weekday-start rule
+    rate = semana_rate if start_date.weekday() < 5 else finde_rate
+    return hours * rate
 
 router = APIRouter(prefix="/api/actividades", tags=["🏥 Actividades"])
 logger = logging.getLogger(__name__)
@@ -49,9 +75,29 @@ async def crear_actividad(
 ):
     """Crear nueva actividad - SIEMPRE asociada al userId del token"""
     
-    # Calcular monto automático si es guardia
-    if actividad.type == ActivityType.GUARDIA and actividad.hours and actividad.hourly_rate:
-        actividad.amount = actividad.hours * actividad.hourly_rate
+    # Validar tipo EXTRA
+    if actividad.type == ActivityType.EXTRA:
+        if not actividad.concept_name or not actividad.concept_name.strip():
+            raise HTTPException(status_code=422, detail="El campo 'concept_name' es obligatorio para actividades tipo 'extra'")
+        if actividad.hours is not None:
+            raise HTTPException(status_code=422, detail="Las actividades tipo 'extra' no pueden tener horas")
+        # Amount is user-provided, no auto-calc
+    
+    # Calcular monto guardia con regla semana/finde
+    if actividad.type == ActivityType.GUARDIA and actividad.hours:
+        inst = await db.institutions.find_one({"name": actividad.institution, "userId": user_id})
+        if inst:
+            start_date_dt = datetime.strptime(actividad.date, "%Y-%m-%d")
+            actividad.amount = calculate_guardia_amount(
+                start_date=start_date_dt,
+                hours=actividad.hours,
+                semana_rate=inst.get("guardia_semana_rate"),
+                finde_rate=inst.get("guardia_finde_rate"),
+                weekday_hours=actividad.weekday_hours,
+                weekend_hours=actividad.weekend_hours,
+            )
+        elif actividad.hourly_rate:
+            actividad.amount = actividad.hours * actividad.hourly_rate
     
     # Calcular monto si es procedimiento
     if actividad.type == ActivityType.PROCEDIMIENTO and actividad.quantity and actividad.unit_value:
@@ -70,6 +116,10 @@ async def crear_actividad(
         "amount": actividad.amount,
         "status": actividad.status.value if actividad.status else PaymentStatus.PENDIENTE.value,
         "notes": actividad.notes,
+        # Extra
+        "concept_name": actividad.concept_name,
+        "weekday_hours": actividad.weekday_hours,
+        "weekend_hours": actividad.weekend_hours,
         # Guardia
         "hours": actividad.hours,
         "hourly_rate": actividad.hourly_rate,
@@ -184,6 +234,51 @@ async def obtener_estadisticas(
         mes_actual=now.strftime("%m"),
         anio_actual=now.year
     )
+
+
+@router.get("/stats/monthly", response_model=List[MonthlyRow])
+async def obtener_comparativa_mensual(
+    year: Optional[int] = None,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Comparativa mensual: totales agrupados por mes para un año específico."""
+    if year is None:
+        year = datetime.utcnow().year
+
+    year_prefix = f"{year}-"
+
+    pipeline = [
+        {"$match": {
+            "userId": user_id,
+            "date": {"$regex": f"^{year_prefix}"}
+        }},
+        {"$group": {
+            "_id": {"$substr": ["$date", 0, 7]},
+            "total_ingresos": {"$sum": "$amount"},
+            "total_guardias": {"$sum": {"$cond": [{"$eq": ["$type", "guardia"]}, 1, 0]}},
+            "total_procedimientos": {"$sum": {"$cond": [{"$eq": ["$type", "procedimiento"]}, 1, 0]}},
+            "total_interconsultas": {"$sum": {"$cond": [{"$eq": ["$type", "interconsulta"]}, 1, 0]}},
+            "total_extras": {"$sum": {"$cond": [{"$eq": ["$type", "extra"]}, 1, 0]}},
+            "cobrado": {"$sum": {"$cond": [{"$eq": ["$status", "pagado"]}, "$amount", 0]}},
+            "pendiente": {"$sum": {"$cond": [{"$eq": ["$status", "pendiente"]}, "$amount", 0]}},
+        }},
+        {"$sort": {"_id": 1}}
+    ]
+
+    results = await db.actividades.aggregate(pipeline).to_list(12)
+    return [
+        MonthlyRow(
+            month=r["_id"],
+            total_ingresos=r["total_ingresos"],
+            total_guardias=r["total_guardias"],
+            total_procedimientos=r["total_procedimientos"],
+            total_interconsultas=r["total_interconsultas"],
+            total_extras=r["total_extras"],
+            cobrado=r["cobrado"],
+            pendiente=r["pendiente"],
+        ) for r in results
+    ]
 
 
 @router.get("/{actividad_id}", response_model=ActividadResponse)

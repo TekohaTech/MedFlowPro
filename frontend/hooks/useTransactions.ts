@@ -6,21 +6,50 @@ export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
 
-  const mapApiActivity = (a: any): Transaction => ({
-    id: a._id,
-    institution: a.institution,
-    type: a.type === "guardia" ? ShiftType.ACTIVE : a.type === "procedimiento" ? ShiftType.CONSULTATION : ShiftType.PASSIVE,
-    date: a.date,
-    amount: a.amount,
-    status: a.status === "pagado" ? PaymentStatus.PAID : PaymentStatus.PENDING,
-    notes: a.notes,
-    duration: a.hours,
-    location: a.institution,
-    startTime: a.start_time || undefined,
-    endTime: a.end_time || undefined,
-    endDate: a.end_date || undefined,
-    shiftSubtype: a.shift_subtype || undefined,
-  });
+  interface ApiActividad {
+    _id: string;
+    type: string;
+    institution: string;
+    date: string;
+    amount: number;
+    status: string;
+    notes?: string;
+    hours?: number;
+    start_time?: string;
+    end_time?: string;
+    end_date?: string;
+    shift_subtype?: string;
+    concept_name?: string;
+    weekday_hours?: number;
+    weekend_hours?: number;
+  }
+
+  const mapApiActivity = (a: ApiActividad): Transaction => {
+    let type: ShiftType;
+    if (a.type === "guardia") type = ShiftType.ACTIVE;
+    else if (a.type === "procedimiento") type = ShiftType.CONSULTATION;
+    else if (a.type === "extra") type = ShiftType.EXTRA;
+    else type = ShiftType.PASSIVE;
+
+    return {
+      id: a._id,
+      institution: a.institution,
+      type,
+      date: a.date,
+      amount: a.amount,
+      status: a.status === "pagado" ? PaymentStatus.PAID : PaymentStatus.PENDING,
+      notes: a.notes,
+      duration: a.hours,
+      location: a.institution,
+      startTime: a.start_time || undefined,
+      endTime: a.end_time || undefined,
+      endDate: a.end_date || undefined,
+      shiftSubtype: a.shift_subtype === 'activa' || a.shift_subtype === 'pasiva' ? a.shift_subtype : undefined,
+      conceptName: a.concept_name || undefined,
+      weekdayHours: a.weekday_hours || undefined,
+      weekendHours: a.weekend_hours || undefined,
+    };
+  };
 
   const fetchTransactions = async (): Promise<Transaction[]> => {
     const actividades = await api.getActividades();
@@ -63,14 +92,20 @@ export function useTransactions() {
 
   const handleAddTransaction = async (newTx: Partial<Transaction>, editingId?: string) => {
     try {
+      const getApiType = (t: ShiftType | undefined): string => {
+        if (t === ShiftType.ACTIVE) return "guardia";
+        if (t === ShiftType.CONSULTATION) return "procedimiento";
+        if (t === ShiftType.EXTRA) return "extra";
+        return "interconsulta";
+      };
+
       if (editingId) {
         const updated = await api.updateActividad(editingId, {
-          type: newTx.type === ShiftType.ACTIVE ? "guardia"
-            : newTx.type === ShiftType.CONSULTATION ? "procedimiento" : "interconsulta",
+          type: getApiType(newTx.type),
           institution: newTx.institution,
           date: newTx.date,
           amount: newTx.amount,
-          hours: newTx.duration,
+          hours: newTx.type === ShiftType.EXTRA ? undefined : newTx.duration,
           hourly_rate: newTx.hourlyRate || undefined,
           notes: newTx.notes,
           status: newTx.status,
@@ -78,23 +113,29 @@ export function useTransactions() {
           end_time: newTx.endTime,
           end_date: newTx.endDate,
           shift_subtype: newTx.shiftSubtype,
+          concept_name: newTx.conceptName,
+          weekday_hours: newTx.weekdayHours,
+          weekend_hours: newTx.weekendHours,
         });
         setTransactions(prev => prev.map((tx) =>
           tx.id === editingId
             ? ({ ...tx, institution: updated.institution, date: updated.date, amount: updated.amount,
                 notes: updated.notes, status: updated.status,
                 startTime: updated.start_time || undefined, endTime: updated.end_time || undefined,
-                endDate: updated.end_date || undefined, shiftSubtype: updated.shift_subtype || undefined } as Transaction)
+                endDate: updated.end_date || undefined, shiftSubtype: updated.shift_subtype || undefined,
+                conceptName: updated.concept_name || undefined,
+                weekdayHours: updated.weekday_hours || undefined,
+                weekendHours: updated.weekend_hours || undefined } as Transaction)
             : tx,
         ));
       } else {
+        const apiType = getApiType(newTx.type);
         const created = await api.createActividad({
-          type: newTx.type === ShiftType.ACTIVE ? "guardia"
-            : newTx.type === ShiftType.CONSULTATION ? "procedimiento" : "interconsulta",
+          type: apiType,
           institution: newTx.institution || "Nueva Institución",
           date: newTx.date || new Date().toISOString().split("T")[0],
           amount: newTx.amount || 0,
-          hours: newTx.duration,
+          hours: apiType === "extra" ? undefined : newTx.duration,
           hourly_rate: newTx.hourlyRate || undefined,
           notes: newTx.notes,
           shift_subtype: newTx.shiftSubtype,
@@ -105,6 +146,9 @@ export function useTransactions() {
           quantity: newTx.quantity,
           unit_value: newTx.unitValue,
           specialty: newTx.specialty,
+          concept_name: newTx.conceptName,
+          weekday_hours: newTx.weekdayHours,
+          weekend_hours: newTx.weekendHours,
         });
         const tx: Transaction = {
           id: created._id, institution: created.institution,
@@ -116,6 +160,9 @@ export function useTransactions() {
           startTime: created.start_time || undefined,
           endTime: created.end_time || undefined,
           shiftSubtype: created.shift_subtype || undefined,
+          conceptName: created.concept_name || undefined,
+          weekdayHours: created.weekday_hours || undefined,
+          weekendHours: created.weekend_hours || undefined,
         };
         setTransactions(prev => [tx, ...prev]);
       }

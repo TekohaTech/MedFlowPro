@@ -4,6 +4,7 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { translations } from '../../translations';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import { ReportsPrintView } from './ReportsPrintView';
 import { ReportsFilterBar } from './ReportsFilterBar';
 import { ReportsStatsCards } from './ReportsStatsCards';
@@ -27,7 +28,7 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
     periodFilter, institutionFilter, activityFilter, showPrintView,
     setPeriodFilter, setInstitutionFilter, setActivityFilter, setShowPrintView,
     filteredActividades, institutions,
-    totalGuardias, totalProcedimientos, totalInterconsultas,
+    totalGuardias, totalProcedimientos, totalInterconsultas, totalExtras,
     totalInvoiced, totalPaid, totalPending, periodLabels,
   } = useReportsFilters(transactions, settings.language);
 
@@ -45,6 +46,7 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
           totalGuardias={totalGuardias}
           totalProcedimientos={totalProcedimientos}
           totalInterconsultas={totalInterconsultas}
+          totalExtras={totalExtras}
           actividades={filteredActividades}
           onClose={() => setShowPrintView(false)}
         />
@@ -63,7 +65,7 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
             <h1 className={cn("text-2xl lg:text-3xl font-black tracking-tight", settings.darkMode ? "text-white" : "text-slate-900")}>
               {t.guardias || 'Guardias'}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Análisis detallado de tu actividad profesional.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">Análisis detallado de tu actividad profesional.</p>
           </div>
         </div>
         <Button size="sm" onClick={() => setShowPrintView(true)} className="bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 rounded-2xl">
@@ -93,13 +95,13 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
         filteredActividades={filteredActividades}
       />
 
-      <div className="bg-white dark:bg-slate-800 p-4 lg:p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xl">
+      <Card padding="sm" shadow="xl" className="lg:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-black text-slate-900 dark:text-white">Calendario de Actividades</h3>
           <Button size="sm" onClick={() => onOpenForm()}>+ Registrar</Button>
         </div>
         <CalendarView transactions={transactions} onOpenForm={onOpenForm} onDelete={onDelete} settings={settings} embedded />
-      </div>
+      </Card>
 
       <button onClick={() => setShowPrintView(true)}
         className="w-full py-6 bg-slate-900 dark:bg-slate-800 rounded-2xl text-white shadow-2xl flex flex-col items-center justify-center gap-3 hover:bg-slate-800 dark:hover:bg-slate-700 transition-all">

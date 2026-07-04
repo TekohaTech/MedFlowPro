@@ -9,7 +9,7 @@ export function Input({ className, label, error, id, ...props }: InputProps) {
   return (
     <div className="space-y-1">
       {label && (
-        <label htmlFor={id} className="text-xs font-bold text-slate-500 uppercase">
+        <label htmlFor={id} className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">
           {label}
         </label>
       )}

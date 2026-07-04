@@ -10,6 +10,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { ComparisonTable } from './ComparisonTable';
 
 interface StatsViewProps {
   onBack: () => void;
@@ -161,6 +162,11 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
             </div>
           ))}
         </div>
+
+        {/* Separador */}
+        <div className="my-8 border-t border-slate-200 dark:border-slate-700" />
+
+        <ComparisonTable />
 
         <button
           onClick={fetchStats}

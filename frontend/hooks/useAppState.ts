@@ -5,7 +5,7 @@ import { GeminiService } from '../services/gemini';
 import { useAuth } from './useAuth';
 import { useTransactions } from './useTransactions';
 
-export type ViewState = "inicio" | "turnos" | "perfil" | "reportes" | "stats" | "admin" | "login" | "registro";
+export type ViewState = "inicio" | "perfil" | "reportes" | "stats" | "admin" | "login" | "registro";
 
 interface UseAppStateReturn {
   auth: ReturnType<typeof useAuth>;

@@ -6,9 +6,11 @@ from datetime import datetime
 import logging
 
 from app.models.institution import InstitutionCreate, InstitutionUpdate, InstitutionResponse
+from app.models.actividad import PaymentStatus
 from app.core.security import decode_token
 from app.core.object_id_utils import safe_object_id
 from app.db.mongo import get_database
+from app.routers.actividades import calculate_guardia_amount
 
 router = APIRouter(prefix="/api/institutions", tags=["🏥 Instituciones"])
 logger = logging.getLogger(__name__)
@@ -53,6 +55,8 @@ async def create_institution(
         "userId": user_id,
         "name": data.name,
         "guardia_rate": data.guardia_rate,
+        "guardia_semana_rate": data.guardia_semana_rate,
+        "guardia_finde_rate": data.guardia_finde_rate,
         "procedimiento_rate": data.procedimiento_rate,
         "interconsulta_rate": data.interconsulta_rate,
         "is_active": True,
@@ -88,6 +92,53 @@ async def update_institution(
     updated["_id"] = str(updated["_id"])
     logger.info(f"✅ Institución actualizada: {updated['name']}")
     return updated
+
+
+@router.post("/{institution_id}/recalculate-pending")
+async def recalculate_pending_activities(
+    institution_id: str,
+    from_date: str,
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Recalcula guardias PENDIENTE desde una fecha usando las tarifas actuales de la institución."""
+    target = await db.institutions.find_one({"_id": safe_object_id(institution_id), "userId": user_id})
+    if not target:
+        raise HTTPException(404, detail="Institución no encontrada")
+
+    semana_rate = target.get("guardia_semana_rate") or target.get("guardia_rate")
+    finde_rate = target.get("guardia_finde_rate") or target.get("guardia_rate")
+
+    cursor = db.actividades.find({
+        "type": "guardia",
+        "institution": target["name"],
+        "status": PaymentStatus.PENDIENTE.value,
+        "date": {"$gte": from_date},
+        "userId": user_id,
+    })
+
+    updated_count = 0
+    async for act in cursor:
+        act_date = datetime.strptime(act["date"], "%Y-%m-%d")
+        hours = act.get("hours", 0) or 0
+        weekday_hours = act.get("weekday_hours")
+        weekend_hours = act.get("weekend_hours")
+
+        new_amount = calculate_guardia_amount(
+            act_date, hours,
+            semana_rate, finde_rate,
+            weekday_hours=weekday_hours,
+            weekend_hours=weekend_hours,
+        )
+
+        await db.actividades.update_one(
+            {"_id": act["_id"]},
+            {"$set": {"amount": new_amount, "updated_at": datetime.utcnow()}}
+        )
+        updated_count += 1
+
+    logger.info(f"🔄 Recalculadas {updated_count} guardias pendientes en '{target['name']}' desde {from_date}")
+    return {"updated_count": updated_count, "institution": target["name"]}
 
 
 @router.delete("/{institution_id}")

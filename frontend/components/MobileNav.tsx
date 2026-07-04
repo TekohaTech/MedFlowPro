@@ -1,4 +1,4 @@
-import { LayoutGrid, Calendar, Settings, LogOut, Plus } from 'lucide-react';
+import { LayoutGrid, Calendar, BarChart3, Settings, LogOut, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -9,6 +9,7 @@ interface MobileNavProps {
   labels: {
     inicio: string;
     turnos: string;
+    estadisticas: string;
     ajustes: string;
   };
 }
@@ -17,29 +18,30 @@ export function MobileNav({ activeView, onNavigate, onLogout, labels }: MobileNa
   const { unreadCount } = useNotifications();
 
   const tabs = [
-    { view: "inicio", label: labels.inicio, icon: <LayoutGrid className="w-5 h-5" /> },
-    { view: "turnos", label: labels.turnos, icon: <Calendar className="w-5 h-5" /> },
-    { view: "perfil", label: labels.ajustes, icon: <Settings className="w-5 h-5" />, badge: unreadCount },
+    { view: "inicio", label: labels.inicio, icon: <LayoutGrid className="w-[18px] h-[18px]" /> },
+    { view: "reportes", label: labels.turnos, icon: <Calendar className="w-[18px] h-[18px]" /> },
+    { view: "stats", label: labels.estadisticas, icon: <BarChart3 className="w-[18px] h-[18px]" /> },
+    { view: "perfil", label: labels.ajustes, icon: <Settings className="w-[18px] h-[18px]" />, badge: unreadCount },
   ];
 
   return (
     <nav className="lg:hidden fixed bottom-6 left-6 right-6 z-50">
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800 rounded-[2.5rem] h-16 flex items-center justify-around shadow-2xl shadow-slate-200/50 dark:shadow-none">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800 rounded-[2rem] h-14 flex items-center justify-around shadow-2xl shadow-slate-200/50 dark:shadow-none">
         {tabs.map(({ view, label, icon, badge }) => (
           <button
             key={view}
             onClick={() => onNavigate(view)}
             className={cn(
-              "flex flex-col items-center gap-1.5 transition-all duration-300 relative",
+              "flex flex-col items-center gap-1 transition-all duration-300 relative",
               activeView === view
-                ? "text-blue-600 dark:text-blue-400 scale-110"
+                ? "text-blue-600 dark:text-blue-400 scale-105"
                 : "text-slate-500 dark:text-slate-400",
             )}
           >
             {icon}
-            <span className="text-[9px] font-black uppercase tracking-[0.1em]">{label}</span>
+            <span className="text-[8px] font-black uppercase tracking-[0.1em]">{label}</span>
             {badge !== undefined && badge > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full min-w-[14px] text-center leading-none">
+              <span className="absolute -top-1.5 -right-2 bg-blue-600 text-white text-[7px] font-bold px-1 py-0.5 rounded-full min-w-[12px] text-center leading-none">
                 {badge}
               </span>
             )}
@@ -47,9 +49,9 @@ export function MobileNav({ activeView, onNavigate, onLogout, labels }: MobileNa
         ))}
         <button
           onClick={onLogout}
-          className="flex flex-col items-center gap-1 px-3 py-2 text-[9px] font-bold text-slate-400 hover:text-red-500 transition-colors"
+          className="flex flex-col items-center gap-1 px-2 py-1 text-[8px] font-bold text-slate-400 hover:text-red-500 transition-colors"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-[18px] h-[18px]" />
           <span>Salir</span>
         </button>
       </div>

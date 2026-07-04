@@ -3,13 +3,15 @@ export enum ShiftType {
   ACTIVE = 'Activa',
   PASSIVE = 'Pasiva',
   CONSULTATION = 'Consultorio',
-  HOME_VISIT = 'Visita Domicilio'
+  HOME_VISIT = 'Visita Domicilio',
+  EXTRA = 'extra'
 }
 
 export enum ActivityType {
   GUARDIA = 'guardia',
   PROCEDIMIENTO = 'procedimiento',
-  INTERCONSULTA = 'interconsulta'
+  INTERCONSULTA = 'interconsulta',
+  EXTRA = 'extra'
 }
 
 export enum PaymentStatus {
@@ -87,7 +89,12 @@ export interface ActividadInterconsulta extends BaseActividad {
   patientInitials?: string;
 }
 
-export type Actividad = ActividadGuardia | ActividadProcedimiento | ActividadInterconsulta;
+export interface ActividadExtra extends BaseActividad {
+  type: ActivityType.EXTRA;
+  conceptName: string;
+}
+
+export type Actividad = ActividadGuardia | ActividadProcedimiento | ActividadInterconsulta | ActividadExtra;
 
 export interface Transaction {
   id: string;
@@ -110,12 +117,17 @@ export interface Transaction {
   patientLocation?: 'intraservicio' | 'extraservicio';
   hourlyRate?: number;
   shiftSubtype?: 'activa' | 'pasiva';
+  conceptName?: string;
+  weekdayHours?: number;
+  weekendHours?: number;
 }
 
 export interface Institution {
   id: string;
   name: string;
   guardia_rate?: number | null;
+  guardia_semana_rate?: number | null;
+  guardia_finde_rate?: number | null;
   procedimiento_rate?: number | null;
   interconsulta_rate?: number | null;
   is_active: boolean;
@@ -157,5 +169,17 @@ export interface ActividadStats {
   Pendiente: number;
   mes_actual: string;
   anio_actual: number;
+}
+
+// Monthly comparison row
+export interface MonthlyRow {
+  month: string;
+  total_ingresos: number;
+  total_guardias: number;
+  total_procedimientos: number;
+  total_interconsultas: number;
+  total_extras: number;
+  cobrado: number;
+  pendiente: number;
 }
 

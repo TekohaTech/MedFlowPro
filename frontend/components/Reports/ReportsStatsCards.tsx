@@ -30,7 +30,7 @@ export function ReportsStatsCards({
             <div className="w-8 h-8 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
               <TrendingUp className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold text-slate-400 uppercase">Total</span>
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Total</span>
           </div>
           <p className="text-base md:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white truncate">{formatCurrency(totalInvoiced)}</p>
         </Card>

@@ -1,9 +1,9 @@
-import { format } from 'date-fns';
+import { format, type Locale } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 interface CalendarNavProps {
   currentDate: Date;
-  locale: any;
+  locale: Locale;
   t: Record<string, string>;
   embedded?: boolean;
   selectedDay: Date;

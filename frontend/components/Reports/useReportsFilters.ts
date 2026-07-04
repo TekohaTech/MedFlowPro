@@ -18,6 +18,7 @@ interface UseReportsFiltersReturn {
   totalGuardias: number;
   totalProcedimientos: number;
   totalInterconsultas: number;
+  totalExtras: number;
   totalInvoiced: number;
   totalPaid: number;
   totalPending: number;
@@ -57,6 +58,7 @@ export function useReportsFilters(transactions: Transaction[], language: string)
         guardia: ShiftType.ACTIVE,
         procedimiento: ShiftType.CONSULTATION,
         interconsulta: ShiftType.PASSIVE,
+        extra: ShiftType.EXTRA,
       };
       const targetType = shiftMap[activityFilter];
       if (targetType) filtered = filtered.filter(a => a.type === targetType);
@@ -70,7 +72,8 @@ export function useReportsFilters(transactions: Transaction[], language: string)
   const totalGuardias = filteredActividades.filter(a => a.type === ShiftType.ACTIVE).reduce((s, a) => s + a.amount, 0);
   const totalProcedimientos = filteredActividades.filter(a => a.type === ShiftType.CONSULTATION).reduce((s, a) => s + a.amount, 0);
   const totalInterconsultas = filteredActividades.filter(a => a.type === ShiftType.PASSIVE).reduce((s, a) => s + a.amount, 0);
-  const totalInvoiced = totalGuardias + totalProcedimientos + totalInterconsultas;
+  const totalExtras = filteredActividades.filter(a => a.type === ShiftType.EXTRA).reduce((s, a) => s + a.amount, 0);
+  const totalInvoiced = totalGuardias + totalProcedimientos + totalInterconsultas + totalExtras;
   const totalPaid = filteredActividades.filter(a => a.status === PaymentStatus.PAID).reduce((s, a) => s + a.amount, 0);
   const totalPending = filteredActividades.filter(a => a.status === PaymentStatus.PENDING).reduce((s, a) => s + a.amount, 0);
 
@@ -86,7 +89,7 @@ export function useReportsFilters(transactions: Transaction[], language: string)
     periodFilter, institutionFilter, activityFilter, showPrintView,
     setPeriodFilter, setInstitutionFilter, setActivityFilter, setShowPrintView,
     filteredActividades, institutions,
-    totalGuardias, totalProcedimientos, totalInterconsultas,
+    totalGuardias, totalProcedimientos, totalInterconsultas, totalExtras,
     totalInvoiced, totalPaid, totalPending, periodLabels,
   };
 }

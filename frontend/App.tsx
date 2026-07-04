@@ -3,7 +3,6 @@ import { useAppState } from "./hooks/useAppState";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { ShiftForm } from "./components/ShiftForm/ShiftForm";
 import { SettingsView } from "./components/Settings/SettingsView";
-import { CalendarView } from "./components/Calendar/CalendarView";
 import { ReportsView } from "./components/Reports/ReportsView";
 import { StatsView } from "./components/StatsView";
 import { LoginView } from "./components/Auth/LoginView";
@@ -95,15 +94,6 @@ function App() {
               onBack={() => handleViewChange("inicio")}
             />
           )}
-          {activeView === "turnos" && (
-            <CalendarView
-              transactions={tx.transactions}
-              onOpenForm={openForm}
-              onDelete={tx.handleDeleteTransaction}
-              settings={settings}
-              onViewReports={() => handleViewChange("reportes")}
-            />
-          )}
           {activeView === "perfil" && (
             <SettingsView
               profile={profile}
@@ -122,7 +112,7 @@ function App() {
         </div>
 
         <MobileFab
-          visible={["inicio", "turnos"].includes(activeView)}
+          visible={["inicio", "reportes"].includes(activeView)}
           onClick={() => openForm()}
         />
 
@@ -130,7 +120,7 @@ function App() {
           activeView={activeView}
           onNavigate={handleViewChange}
           onLogout={auth.handleLogout}
-          labels={{ inicio: t.inicio, turnos: t.guardias, ajustes: t.ajustes }}
+          labels={{ inicio: t.inicio, turnos: t.guardias, estadisticas: t.estadisticas, ajustes: t.ajustes }}
         />
       </main>
 

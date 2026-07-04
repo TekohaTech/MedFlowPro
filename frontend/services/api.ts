@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface RequestOptions {
   method?: string;
-  body?: any;
+  body?: unknown;
   headers?: Record<string, string>;
 }
 
@@ -183,6 +183,9 @@ class APIService {
     unit_value?: number;
     specialty?: string;
     shift_subtype?: string;
+    concept_name?: string;
+    weekday_hours?: number;
+    weekend_hours?: number;
   }) {
     return this.request<any>('/api/actividades/', {
       method: 'POST',
@@ -190,7 +193,7 @@ class APIService {
     });
   }
 
-  async updateActividad(id: string, actividad: any) {
+  async updateActividad(id: string, actividad: Record<string, unknown>) {
     return this.request<any>(`/api/actividades/${id}`, {
       method: 'PUT',
       body: actividad,
@@ -205,6 +208,11 @@ class APIService {
 
   async getStats() {
     return this.request<any>('/api/actividades/stats');
+  }
+
+  async getMonthlyComparison(year?: number) {
+    const params = year ? `?year=${year}` : '';
+    return this.request<import('../types').MonthlyRow[]>(`/api/actividades/stats/monthly${params}`);
   }
 
   // ==================== ADMIN ====================
@@ -229,7 +237,7 @@ class APIService {
     });
   }
 
-  async updateUser(userId: string, data: any) {
+  async updateUser(userId: string, data: Record<string, unknown>) {
     return this.request<any>(`/api/auth/admin/users/${userId}`, {
       method: 'PUT',
       body: data,
@@ -247,14 +255,14 @@ class APIService {
     return this.request<Institution[]>('/api/institutions/');
   }
 
-  async createInstitution(data: { name: string; guardia_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null }): Promise<Institution> {
+  async createInstitution(data: { name: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null }): Promise<Institution> {
     return this.request<Institution>('/api/institutions/', {
       method: 'POST',
       body: data,
     });
   }
 
-  async updateInstitution(id: string, data: { name?: string; guardia_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null; is_active?: boolean }): Promise<Institution> {
+  async updateInstitution(id: string, data: { name?: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null; is_active?: boolean }): Promise<Institution> {
     return this.request<Institution>(`/api/institutions/${id}`, {
       method: 'PUT',
       body: data,
@@ -265,6 +273,13 @@ class APIService {
     return this.request<void>(`/api/institutions/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async recalculatePending(id: string, from_date: string): Promise<{ updated_count: number; institution: string }> {
+    return this.request<{ updated_count: number; institution: string }>(
+      `/api/institutions/${id}/recalculate-pending?from_date=${encodeURIComponent(from_date)}`,
+      { method: 'POST' },
+    );
   }
 
   // ==================== NOTIFICACIONES ====================
