@@ -92,6 +92,7 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
         totalGuardias={totalGuardias}
         totalProcedimientos={totalProcedimientos}
         totalInterconsultas={totalInterconsultas}
+        totalExtras={totalExtras}
         filteredActividades={filteredActividades}
       />
 

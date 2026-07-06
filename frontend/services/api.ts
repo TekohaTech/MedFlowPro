@@ -251,22 +251,42 @@ class APIService {
   }
 
   // ==================== INSTITUCIONES ====================
+  /**
+   * Normalize an institution from the API: the backend serializes with
+   * FastAPI's response_model_by_alias=True, so the JSON has _id instead of id.
+   */
+  private normalizeInstitution(raw: any): Institution {
+    return {
+      id: raw._id ?? raw.id,
+      name: raw.name,
+      guardia_rate: raw.guardia_rate,
+      guardia_semana_rate: raw.guardia_semana_rate,
+      guardia_finde_rate: raw.guardia_finde_rate,
+      procedimiento_rate: raw.procedimiento_rate,
+      interconsulta_rate: raw.interconsulta_rate,
+      is_active: raw.is_active,
+    };
+  }
+
   async getInstitutions(): Promise<Institution[]> {
-    return this.request<Institution[]>('/api/institutions/');
+    const raw = await this.request<any[]>('/api/institutions/');
+    return raw.map(r => this.normalizeInstitution(r));
   }
 
   async createInstitution(data: { name: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null }): Promise<Institution> {
-    return this.request<Institution>('/api/institutions/', {
+    const raw = await this.request<any>('/api/institutions/', {
       method: 'POST',
       body: data,
     });
+    return this.normalizeInstitution(raw);
   }
 
   async updateInstitution(id: string, data: { name?: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null; is_active?: boolean }): Promise<Institution> {
-    return this.request<Institution>(`/api/institutions/${id}`, {
+    const raw = await this.request<any>(`/api/institutions/${id}`, {
       method: 'PUT',
       body: data,
     });
+    return this.normalizeInstitution(raw);
   }
 
   async deleteInstitution(id: string): Promise<void> {

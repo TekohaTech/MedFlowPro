@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 
 interface InstitutionEditFormProps {
   institution?: Institution;
+  activityMode?: 'guardia' | 'extra';
   onSave: (inst: Institution, name: string) => void;
   onCancel: () => void;
 }
@@ -23,7 +24,7 @@ function initForm(inst?: Institution) {
 type FormFields = ReturnType<typeof initForm>;
 type FormKey = keyof FormFields;
 
-export function InstitutionEditForm({ institution, onSave, onCancel }: InstitutionEditFormProps) {
+export function InstitutionEditForm({ institution, activityMode, onSave, onCancel }: InstitutionEditFormProps) {
   const [form, setForm] = useState(initForm(institution));
   const [saving, setSaving] = useState(false);
 
@@ -54,35 +55,45 @@ export function InstitutionEditForm({ institution, onSave, onCancel }: Instituti
     }
   };
 
+  const isExtraMode = activityMode === 'extra' && !institution;
+
   return (
     <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
       <input type="text" value={form.name} onChange={setField('name')}
-        placeholder="Nombre de la institución"
-        title="Nombre del hospital, clínica o sanatorio"
+        placeholder={isExtraMode ? 'Nombre del pagador' : 'Nombre de la institución'}
+        title={isExtraMode ? 'Nombre del lugar que paga este extra' : 'Nombre del hospital, clínica o sanatorio'}
         className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[9px] font-black text-slate-700 block mb-1">🇪 Guardia ($/h)</label>
-          <input type="text" inputMode="numeric" value={form.guardiaSemanaRate} onChange={setField('guardiaSemanaRate')}
-            placeholder="Semana" title="Valor por hora de guardia en día de semana (lunes a viernes)"
-            className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white" />
-          <input type="text" inputMode="numeric" value={form.guardiaFindeRate} onChange={setField('guardiaFindeRate')}
-            placeholder="Finde" title="Valor por hora de guardia en fin de semana (sábado o domingo)"
-            className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white mt-1" />
+
+      {isExtraMode ? (
+        <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+          Solo necesitás el nombre. Las tarifas no aplican para actividades extra.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[9px] font-black text-slate-700 block mb-1">🇪 Guardia ($/h)</label>
+            <input type="text" inputMode="numeric" value={form.guardiaSemanaRate} onChange={setField('guardiaSemanaRate')}
+              placeholder="Semana" title="Valor por hora de guardia en día de semana (lunes a viernes)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white" />
+            <input type="text" inputMode="numeric" value={form.guardiaFindeRate} onChange={setField('guardiaFindeRate')}
+              placeholder="Finde" title="Valor por hora de guardia en fin de semana (sábado o domingo)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white mt-1" />
+          </div>
+          <div>
+            <label className="text-[9px] font-black text-slate-700 block mb-1">Otros</label>
+            <input type="text" inputMode="numeric" value={form.procedimientoRate} onChange={setField('procedimientoRate')}
+              placeholder="Proced. unit." title="Valor por procedimiento (ej: RMN, ecografía, cirugía menor)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white" />
+            <input type="text" inputMode="numeric" value={form.interconsultaRate} onChange={setField('interconsultaRate')}
+              placeholder="Interc. c/u" title="Valor por interconsulta (ej: evaluación de otra especialidad)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white mt-1" />
+            <input type="text" inputMode="numeric" value={form.guardiaRate} onChange={setField('guardiaRate')}
+              placeholder="Guardia (legacy)" title="Valor anterior de guardia. Si ya completás Semana y Finde arriba, no hace falta llenarlo."
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-400 dark:text-slate-500 mt-1" />
+          </div>
         </div>
-        <div>
-          <label className="text-[9px] font-black text-slate-700 block mb-1">Otros</label>
-          <input type="text" inputMode="numeric" value={form.procedimientoRate} onChange={setField('procedimientoRate')}
-            placeholder="Proced. unit." title="Valor por procedimiento (ej: RMN, ecografía, cirugía menor)"
-            className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white" />
-          <input type="text" inputMode="numeric" value={form.interconsultaRate} onChange={setField('interconsultaRate')}
-            placeholder="Interc. c/u" title="Valor por interconsulta (ej: evaluación de otra especialidad)"
-            className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white mt-1" />
-          <input type="text" inputMode="numeric" value={form.guardiaRate} onChange={setField('guardiaRate')}
-            placeholder="Guardia (legacy)" title="Valor anterior de guardia. Si ya completás Semana y Finde arriba, no hace falta llenarlo."
-            className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-400 dark:text-slate-500 mt-1" />
-        </div>
-      </div>
+      )}
+
       <div className="flex gap-2">
         <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
           Cancelar

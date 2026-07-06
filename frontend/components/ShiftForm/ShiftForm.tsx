@@ -98,13 +98,14 @@ export function ShiftForm({
           )}
 
           <div className="space-y-2">
-            <Label>Institución</Label>
+            <Label>Institución {isExtra && <span className="text-slate-400 font-medium">(opcional)</span>}</Label>
             <InstitutionPicker
               institutions={institutions}
               selected={form.institution}
               onSelect={form.handleSelectInstitution}
               onInstitutionChange={onInstitutionChange}
               onInstitutionDelete={onInstitutionDelete}
+              activityMode={isExtra ? 'extra' : 'guardia'}
             />
             {form.institution && !form.selectedInstitution && (
               <p className="text-[10px] text-amber-500 font-bold">
@@ -237,9 +238,9 @@ export function ShiftForm({
               placeholder="Observaciones..." className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl p-2.5 font-medium h-16 resize-none text-slate-900 dark:text-white" />
           </div>
 
-          <button type="submit" disabled={!form.institution || !form.amount || form.isPending}
+          <button type="submit" disabled={isExtra ? (!form.conceptName || !form.amount || form.isPending) : (!form.institution || !form.amount || form.isPending)}
             className={cn("w-full lg:w-auto lg:px-10 lg:mx-auto p-3 rounded-xl font-bold text-base shadow-lg flex items-center justify-center gap-2 transition-all",
-              form.institution && form.amount && !form.isPending ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]" : "bg-slate-300 text-slate-500 cursor-not-allowed")}>
+              (isExtra ? form.conceptName : form.institution) && form.amount && !form.isPending ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]" : "bg-slate-300 text-slate-500 cursor-not-allowed")}>
             <Check className="w-4 h-4" />
             {form.isPending ? 'Guardando...' : isExtra ? 'Guardar Extra' : form.extras.length > 0 ? `Guardar (${form.extras.length + 1} actividades)` : 'Guardar'}
           </button>

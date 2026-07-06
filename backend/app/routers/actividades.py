@@ -88,16 +88,24 @@ async def crear_actividad(
         inst = await db.institutions.find_one({"name": actividad.institution, "userId": user_id})
         if inst:
             start_date_dt = datetime.strptime(actividad.date, "%Y-%m-%d")
+            # Fallback a guardia_rate (legacy) si los campos nuevos son None
+            semana_rate = inst.get("guardia_semana_rate")
+            if semana_rate is None:
+                semana_rate = inst.get("guardia_rate")
+            finde_rate = inst.get("guardia_finde_rate")
+            if finde_rate is None:
+                finde_rate = inst.get("guardia_rate")
             actividad.amount = calculate_guardia_amount(
                 start_date=start_date_dt,
                 hours=actividad.hours,
-                semana_rate=inst.get("guardia_semana_rate"),
-                finde_rate=inst.get("guardia_finde_rate"),
+                semana_rate=semana_rate,
+                finde_rate=finde_rate,
                 weekday_hours=actividad.weekday_hours,
                 weekend_hours=actividad.weekend_hours,
             )
-        elif actividad.hourly_rate:
-            actividad.amount = actividad.hours * actividad.hourly_rate
+        if actividad.amount is None or actividad.amount == 0:
+            if actividad.hourly_rate:
+                actividad.amount = actividad.hours * actividad.hourly_rate
     
     # Calcular monto si es procedimiento
     if actividad.type == ActivityType.PROCEDIMIENTO and actividad.quantity and actividad.unit_value:

@@ -125,11 +125,7 @@ export function useAppState(): UseAppStateReturn {
   }, [tx.transactions]);
 
   const handleAddTransaction = async (newTx: Partial<Transaction>) => {
-    try {
-      await tx.handleAddTransaction(newTx, editingTransaction?.id);
-    } catch (error) {
-      alert("Error al guardar: " + (error instanceof Error ? error.message : "Error desconocido"));
-    }
+    await tx.handleAddTransaction(newTx, editingTransaction?.id);
   };
 
   const openForm = (date?: string, txVal?: Transaction) => {

@@ -50,7 +50,7 @@ export function useShiftForm(
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   })());
-  const [hours, setHours] = useState<number>(12);
+  const [hours, setHours] = useState<number>(editingTransaction?.duration || 12);
   const [hourlyRate, setHourlyRate] = useState<string>('');
   const [extras, setExtras] = useState<ExtraActivity[]>([]);
   const [shiftSubtype, setShiftSubtype] = useState<'activa' | 'pasiva'>('activa');
@@ -168,74 +168,81 @@ export function useShiftForm(
     async (prev: ShiftFormState, formData: FormData) => {
       const rawAmount = formData.get('amount_display') as string || amount;
       const cleanAmount = parseInt(rawAmount.replace(/\./g, '')) || 0;
-      if (!institution || cleanAmount <= 0) return { error: 'Completá todos los campos obligatorios' };
+      if (cleanAmount <= 0) return { error: 'Completá todos los campos obligatorios' };
+      if (activityMode !== 'extra' && !institution) return { error: 'Completá todos los campos obligatorios' };
 
-      if (activityMode === 'extra') {
-        const fDate = (formData.get('date') as string) || date;
-        const fStatus = (formData.get('status') as string) === 'paid' ? PaymentStatus.PAID : PaymentStatus.PENDING;
-        const fNotes = (formData.get('notes') as string) || notes;
+      try {
+        if (activityMode === 'extra') {
+          const fDate = (formData.get('date') as string) || date;
+          const fStatus = (formData.get('status') as string) === 'paid' ? PaymentStatus.PAID : PaymentStatus.PENDING;
+          const fNotes = (formData.get('notes') as string) || notes;
 
-        // Determinar tipo: si editamos, preservar el original; si es nuevo, EXTRA
-        const saveType = editingTransaction?.type ?? ShiftType.EXTRA;
+          // Determinar tipo: si editamos, preservar el original; si es nuevo, EXTRA
+          const saveType = editingTransaction?.type ?? ShiftType.EXTRA;
 
-        if (saveType === ShiftType.EXTRA) {
-          const fConceptName = formData.get('concept_name') as string || conceptName;
-          if (!fConceptName || !fConceptName.trim()) {
-            return { error: 'El nombre del concepto es obligatorio para actividades extra' };
+          if (saveType === ShiftType.EXTRA) {
+            const fConceptName = formData.get('concept_name') as string || conceptName;
+            if (!fConceptName || !fConceptName.trim()) {
+              return { error: 'El nombre del concepto es obligatorio para actividades extra' };
+            }
+            // Si no hay institución, usar el concepto como institución
+            const effectiveInstitution = institution || fConceptName.trim();
+            await onSubmit({
+              amount: cleanAmount, date: fDate, institution: effectiveInstitution,
+              type: saveType, status: fStatus, notes: fNotes,
+              id: editingTransaction?.id, conceptName: fConceptName,
+            });
+          } else {
+            // CONSULTATION o PASSIVE (procedimiento / interconsulta)
+            const fSubName = formData.get('sub_item_name') as string || subItemName;
+            // Reconstruir notes: "nombre: notas extra"
+            const reconstructedNotes = [fSubName, fNotes].filter(Boolean).join(': ');
+            await onSubmit({
+              amount: cleanAmount, date: fDate, institution,
+              type: saveType, status: fStatus, notes: reconstructedNotes,
+              id: editingTransaction?.id,
+              procedureName: saveType === ShiftType.CONSULTATION ? fSubName : undefined,
+              specialty: saveType === ShiftType.PASSIVE ? fSubName : undefined,
+            });
           }
-          await onSubmit({
-            amount: cleanAmount, date: fDate, institution,
-            type: saveType, status: fStatus, notes: fNotes,
-            id: editingTransaction?.id, conceptName: fConceptName,
-          });
-        } else {
-          // CONSULTATION o PASSIVE (procedimiento / interconsulta)
-          const fSubName = formData.get('sub_item_name') as string || subItemName;
-          // Reconstruir notes: "nombre: notas extra"
-          const reconstructedNotes = [fSubName, fNotes].filter(Boolean).join(': ');
-          await onSubmit({
-            amount: cleanAmount, date: fDate, institution,
-            type: saveType, status: fStatus, notes: reconstructedNotes,
-            id: editingTransaction?.id,
-            procedureName: saveType === ShiftType.CONSULTATION ? fSubName : undefined,
-            specialty: saveType === ShiftType.PASSIVE ? fSubName : undefined,
-          });
+          onClose();
+          return {};
+        }
+
+        const rawRate = parseInt((formData.get('hourly_rate') as string || hourlyRate).replace(/\D/g, '')) || 0;
+        const fDate = formData.get('date') as string || date;
+        const fEndDate = formData.get('end_date') as string || endDate;
+        const fStartTime = formData.get('start_time') as string || startTime;
+        const fEndTime = formData.get('end_time') as string || endTime;
+        const fStatus = (formData.get('status') as string) === 'paid' ? PaymentStatus.PAID : PaymentStatus.PENDING;
+        const fNotes = formData.get('notes') as string || notes;
+
+        await onSubmit({
+          amount: cleanAmount, date: fDate, endDate: fEndDate,
+          startTime: fStartTime, endTime: fEndTime, institution,
+          type: ShiftType.ACTIVE, status: fStatus, notes: fNotes,
+          id: editingTransaction?.id, duration: hours, hourlyRate: rawRate, shiftSubtype,
+          weekdayHours: applyWeekdayRule ? undefined : weekdayHours,
+          weekendHours: applyWeekdayRule ? undefined : weekendHours,
+        });
+
+        for (const extra of extras) {
+          if (extra.amount > 0) {
+            await onSubmit({
+              amount: extra.amount, date: fDate, institution,
+              type: extra.type === 'procedimiento' ? ShiftType.CONSULTATION : ShiftType.PASSIVE,
+              status: extra.status,
+              notes: [extra.type === 'procedimiento' ? extra.procedureName : extra.specialty, extra.notes].filter(Boolean).join(': '),
+              procedureName: extra.type === 'procedimiento' ? extra.procedureName : undefined,
+              specialty: extra.type === 'interconsulta' ? extra.specialty : undefined,
+            });
+          }
         }
         onClose();
         return {};
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : 'Error al guardar los datos' };
       }
-
-      const rawRate = parseInt((formData.get('hourly_rate') as string || hourlyRate).replace(/\D/g, '')) || 0;
-      const fDate = formData.get('date') as string || date;
-      const fEndDate = formData.get('end_date') as string || endDate;
-      const fStartTime = formData.get('start_time') as string || startTime;
-      const fEndTime = formData.get('end_time') as string || endTime;
-      const fStatus = (formData.get('status') as string) === 'paid' ? PaymentStatus.PAID : PaymentStatus.PENDING;
-      const fNotes = formData.get('notes') as string || notes;
-
-      await onSubmit({
-        amount: cleanAmount, date: fDate, endDate: fEndDate,
-        startTime: fStartTime, endTime: fEndTime, institution,
-        type: ShiftType.ACTIVE, status: fStatus, notes: fNotes,
-        id: editingTransaction?.id, duration: hours, hourlyRate: rawRate, shiftSubtype,
-        weekdayHours: applyWeekdayRule ? undefined : weekdayHours,
-        weekendHours: applyWeekdayRule ? undefined : weekendHours,
-      });
-
-      for (const extra of extras) {
-        if (extra.amount > 0) {
-          await onSubmit({
-            amount: extra.amount, date: fDate, institution,
-            type: extra.type === 'procedimiento' ? ShiftType.CONSULTATION : ShiftType.PASSIVE,
-            status: extra.status,
-            notes: [extra.type === 'procedimiento' ? extra.procedureName : extra.specialty, extra.notes].filter(Boolean).join(': '),
-            procedureName: extra.type === 'procedimiento' ? extra.procedureName : undefined,
-            specialty: extra.type === 'interconsulta' ? extra.specialty : undefined,
-          });
-        }
-      }
-      onClose();
-      return {};
     },
     { error: undefined },
   );

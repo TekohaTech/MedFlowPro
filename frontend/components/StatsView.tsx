@@ -117,7 +117,7 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
   ];
 
   return (
-    <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
+    <div className="flex-1 p-4 lg:p-8 overflow-y-auto">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -146,17 +146,17 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
             <div
               key={idx}
               className={cn(
-                "rounded-2xl p-6 shadow-xl shadow-slate-200/50 border border-slate-200",
+                "rounded-2xl p-4 lg:p-6 shadow-xl shadow-slate-200/50 border border-slate-200 min-w-0",
                 settings.darkMode ? "bg-slate-800 dark:border-slate-700" : "bg-white"
               )}
             >
-              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-4", card.color)}>
-                <card.icon className="w-5 h-5 text-white" />
+              <div className={cn("w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center mb-3 lg:mb-4", card.color)}>
+                <card.icon className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
               </div>
-              <p className={cn("text-xs font-bold uppercase tracking-wider mb-1", settings.darkMode ? "text-slate-400" : "text-slate-500")}>
+              <p className={cn("text-[10px] lg:text-xs font-bold uppercase tracking-wider mb-1", settings.darkMode ? "text-slate-400" : "text-slate-500")}>
                 {card.label}
               </p>
-              <p className={cn("text-2xl font-black", settings.darkMode ? "text-white" : "text-slate-900")}>
+              <p className={cn("text-base md:text-lg lg:text-2xl font-black truncate", settings.darkMode ? "text-white" : "text-slate-900")}>
                 {card.value}
               </p>
             </div>

@@ -12,11 +12,12 @@ interface InstitutionPickerProps {
   onSelect: (name: string) => void;
   onInstitutionChange: (inst: Institution) => void;
   onInstitutionDelete: (id: string) => void;
+  activityMode?: 'guardia' | 'extra';
 }
 
 export function InstitutionPicker({
   institutions, selected, onSelect,
-  onInstitutionChange, onInstitutionDelete,
+  onInstitutionChange, onInstitutionDelete, activityMode,
 }: InstitutionPickerProps) {
   const [dropdown, setDropdown] = useState({ open: false, search: '' });
   const [instEditTarget, setInstEditTarget] = useState<'new' | Institution | null>(null);
@@ -53,6 +54,7 @@ export function InstitutionPicker({
       {instEditTarget ? (
         <InstitutionEditForm
           institution={instEditTarget === 'new' ? undefined : instEditTarget}
+          activityMode={activityMode}
           onSave={(inst, newName) => {
             onInstitutionChange(inst);
             if (newName) onSelect(newName);
@@ -68,7 +70,7 @@ export function InstitutionPicker({
             style={{ minHeight: '40px' }}
           >
             <span className={selected ? 'text-slate-900 dark:text-white' : 'text-slate-400'}>
-              {selected || 'Buscar o crear institución...'}
+              {selected || (activityMode === 'extra' ? 'Sin institución (opcional)' : 'Buscar o crear institución...')}
             </span>
             <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
           </div>

@@ -90,8 +90,8 @@ export function Dashboard({
     ? transactions.filter(tx =>
         tx.institution.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.date.includes(searchQuery)
-      ).slice(0, 10)
-    : transactions.slice(0, 4);
+      )      .slice(0, 10)
+    : transactions.slice(0, 20);
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 lg:space-y-8 animate-in fade-in duration-500 pb-32">
@@ -171,11 +171,12 @@ export function Dashboard({
           </div>
 
           <TransactionHistory
-            transactions={filteredTransactions.sort((a, b) => b.date.localeCompare(a.date))}
+            transactions={transactions}
             pagadosLabel={t.pagados}
             pendientesLabel={t.pendientes}
             activityLabel={t.actividad}
             emptyLabel={t.sinActividadesRecientes}
+            language={settings.language}
           />
         </div>
       </div>
