@@ -13,13 +13,13 @@ export function DashboardCard({
   decoration?: React.ReactNode;
 }) {
   return (
-    <div className={cn(baseClasses, className)}>
+    <div className={cn(baseClasses, "flex flex-col", className)}>
       {decoration && (
         <div className="absolute top-0 right-0 transition-transform group-hover:scale-110">
           {decoration}
         </div>
       )}
-      <div className="relative z-10">{children}</div>
+      <div className="relative z-10 flex flex-col flex-1 h-full">{children}</div>
     </div>
   );
 }

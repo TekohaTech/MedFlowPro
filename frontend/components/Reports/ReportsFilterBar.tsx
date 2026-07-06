@@ -44,12 +44,13 @@ export function ReportsFilterBar({
       </div>
       <div className="flex items-center gap-2">
         <Filter className="w-4 h-4 text-slate-400" />
-        <select value={activityFilter} onChange={(e) => onActivityChange(e.target.value)} className={selectClass}>
-          <option value="Todos">Todos los tipos</option>
-          <option value="guardia">Guardias</option>
-          <option value="procedimiento">Procedimientos</option>
-          <option value="interconsulta">Interconsultas</option>
-        </select>
+          <select value={activityFilter} onChange={(e) => onActivityChange(e.target.value)} className={selectClass}>
+            <option value="Todos">Todos los tipos</option>
+            <option value="guardia">Guardias</option>
+            <option value="procedimiento">Procedimientos</option>
+            <option value="interconsulta">Interconsultas</option>
+            <option value="extra">Extras</option>
+          </select>
       </div>
     </div>
   );

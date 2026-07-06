@@ -1,73 +1,135 @@
 import { Transaction, PaymentStatus } from '../../types';
 import { formatCurrency, formatCurrencyFull } from '../../lib/utils';
-import { Calendar, PieChart, Clock, TrendingUp } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, PieChart, Clock,
+  Activity, Stethoscope, UserCheck, FileText,
+} from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
+import { cn } from '../../lib/utils';
+
+interface MonthCounts {
+  guardias: number;
+  procedimientos: number;
+  interconsultas: number;
+  extras: number;
+}
 
 interface StatsCardsProps {
   currentMonthTotal: number;
+  currentMonthCounts: MonthCounts;
+  prevMonthTotal: number;
   nextShift: Transaction | null;
   nextOverlapWarning: string | null;
   onOpenForm: () => void;
-  goal: number;
+}
+
+function StatBadge({ count, icon, label }: { count: number; icon: React.ReactNode; label: string }) {
+  if (count === 0) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-700/50 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300">
+      {icon}
+      {count} {label}
+    </span>
+  );
 }
 
 export function StatsCards({
   currentMonthTotal,
+  currentMonthCounts,
+  prevMonthTotal,
   nextShift,
   nextOverlapWarning,
   onOpenForm,
-  goal,
 }: StatsCardsProps) {
+  const now = new Date();
+  const currentLabel = now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevLabel = prevDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+
+  const delta = prevMonthTotal > 0
+    ? Math.round(((currentMonthTotal - prevMonthTotal) / prevMonthTotal) * 100)
+    : currentMonthTotal > 0 ? 100 : 0;
+
+  const isUp = delta >= 0;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
       <DashboardCard>
         <div className="flex items-center gap-2 lg:gap-3 mb-4 lg:mb-6">
-          <div className="w-10 lg:w-12 h-10 lg:h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl lg:rounded-2xl flex items-center justify-center">
-            <Calendar className="w-5 lg:w-6 h-5 lg:h-6" />
+          <div className="w-10 lg:w-12 h-10 lg:h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl lg:rounded-2xl flex items-center justify-center">
+            <Activity className="w-5 lg:w-6 h-5 lg:h-6" />
           </div>
           <span className="text-[9px] lg:text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Balance del Mes
+            Actividades del Mes
           </span>
         </div>
-        <div className="space-y-1">
-          <span
-            className="text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tighter block truncate"
-            title={formatCurrencyFull(currentMonthTotal)}
-          >
-            {formatCurrency(currentMonthTotal)}
-          </span>
-          <div className="flex items-center gap-2 text-green-600 text-[9px] lg:text-[10px] font-black uppercase tracking-widest pt-1 lg:pt-2">
-            <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4" />
-            vs. año pasado
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatBadge count={currentMonthCounts.guardias} icon={<Clock className="w-3.5 h-3.5" />} label="guardias" />
+          <StatBadge count={currentMonthCounts.procedimientos} icon={<Stethoscope className="w-3.5 h-3.5" />} label="procedimientos" />
+          <StatBadge count={currentMonthCounts.interconsultas} icon={<UserCheck className="w-3.5 h-3.5" />} label="interconsultas" />
+          <StatBadge count={currentMonthCounts.extras} icon={<FileText className="w-3.5 h-3.5" />} label="extras" />
         </div>
+        {currentMonthCounts.guardias + currentMonthCounts.procedimientos + currentMonthCounts.interconsultas + currentMonthCounts.extras === 0 && (
+          <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">Sin actividades este mes</p>
+        )}
       </DashboardCard>
 
-      <DashboardCard className="bg-slate-900 dark:bg-slate-800 text-white hidden md:block">
+      <DashboardCard className="bg-slate-900 dark:bg-slate-800 text-white flex flex-col">
         <div className="flex items-center gap-2 lg:gap-3 mb-4 lg:mb-6">
           <div className="w-10 lg:w-12 h-10 lg:h-12 bg-white/10 text-white rounded-xl lg:rounded-2xl flex items-center justify-center">
             <PieChart className="w-5 lg:w-6 h-5 lg:h-6" />
           </div>
           <span className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-            Meta de Ingreso
+            Comparativa
           </span>
         </div>
-        <div className="space-y-3 lg:space-y-4">
-          <div className="flex justify-between items-end">
+        <div className="flex-1 space-y-4 lg:space-y-5">
+          <div>
+            <p className="text-[9px] lg:text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">
+              Este mes
+            </p>
+            <p className="text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-wide mb-1">
+              {currentLabel}
+            </p>
             <span
-              className="text-2xl lg:text-3xl font-black tracking-tighter truncate block pr-2"
+              className="text-2xl lg:text-3xl font-black tracking-tighter block"
               title={formatCurrencyFull(currentMonthTotal)}
             >
-              {formatCurrency(currentMonthTotal)} / {goal >= 1000000 ? `${goal / 1000000}M` : formatCurrency(goal)}
+              {formatCurrency(currentMonthTotal)}
             </span>
-            <span className="text-[9px] lg:text-[10px] font-black text-white/40">
-              {Math.min(100, Math.round((currentMonthTotal / goal) * 100))}%
+          </div>
+          <div className="border-t border-white/10 pt-4 lg:pt-5">
+            <p className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+              Mes pasado
+            </p>
+            <p className="text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-wide mb-1">
+              {prevLabel}
+            </p>
+            <span
+              className="text-xl lg:text-2xl font-black text-slate-300 tracking-tighter block"
+              title={formatCurrencyFull(prevMonthTotal)}
+            >
+              {formatCurrency(prevMonthTotal)}
             </span>
+          </div>
+        </div>
+        <div className="mt-auto pt-4 lg:pt-5 border-t border-white/10">
+          <div className="flex items-center gap-2 mb-2 lg:mb-3">
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs lg:text-sm font-black",
+              isUp ? "text-green-400" : "text-red-400",
+            )}>
+              {isUp ? <TrendingUp className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> : <TrendingDown className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+              {isUp ? '+' : ''}{delta}% vs mes anterior
+            </div>
           </div>
           <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-500 rounded-full transition-all duration-1000"
-              style={{ width: `${Math.min(100, (currentMonthTotal / goal) * 100)}%` }}
+              className={cn(
+                "h-full rounded-full transition-all duration-1000",
+                isUp ? "bg-green-500" : "bg-red-500",
+              )}
+              style={{ width: `${Math.min(100, prevMonthTotal > 0 ? (currentMonthTotal / prevMonthTotal) * 100 : 100)}%` }}
             />
           </div>
         </div>

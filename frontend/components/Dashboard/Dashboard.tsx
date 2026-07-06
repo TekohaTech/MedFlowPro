@@ -35,7 +35,34 @@ export function Dashboard({
   const [year, setYear] = useState(new Date().getFullYear());
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
 
-  const currentMonthTotal = transactions.reduce((acc, t) => acc + t.amount, 0);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const currentMonthTxs = transactions.filter(t => {
+    const d = new Date(t.date + 'T12:00:00');
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  });
+
+  const currentMonthTotal = currentMonthTxs.reduce((acc, t) => acc + t.amount, 0);
+  const currentMonthCounts = {
+    guardias: currentMonthTxs.filter(t => t.type === ShiftType.ACTIVE).length,
+    procedimientos: currentMonthTxs.filter(t => t.type === ShiftType.CONSULTATION).length,
+    interconsultas: currentMonthTxs.filter(t => t.type === ShiftType.PASSIVE).length,
+    extras: currentMonthTxs.filter(t => t.type === ShiftType.EXTRA).length,
+  };
+
+  const prevDate = new Date(currentYear, currentMonth - 1, 1);
+  const prevYear = prevDate.getFullYear();
+  const prevMonth = prevDate.getMonth();
+
+  const prevMonthTotal = transactions
+    .filter(t => {
+      const d = new Date(t.date + 'T12:00:00');
+      return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
+    })
+    .reduce((acc, t) => acc + t.amount, 0);
+
   const todayStr = new Date().toISOString().split('T')[0];
   const upcomingShifts = transactions
     .filter((tx) => tx.date >= todayStr)
@@ -83,8 +110,7 @@ export function Dashboard({
 
   const monthlyData = getMonthlyPerformance(year);
   const maxVal = Math.max(...monthlyData.map(d => d.value), 1000);
-  const currentMonth = new Date().getMonth();
-  const goal = 1000000;
+
 
   const filteredTransactions = searchQuery
     ? transactions.filter(tx =>
@@ -137,10 +163,11 @@ export function Dashboard({
 
       <StatsCards
         currentMonthTotal={currentMonthTotal}
+        currentMonthCounts={currentMonthCounts}
+        prevMonthTotal={prevMonthTotal}
         nextShift={nextShift}
         nextOverlapWarning={nextOverlapWarning}
         onOpenForm={onOpenForm}
-        goal={goal}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
