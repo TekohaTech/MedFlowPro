@@ -26,7 +26,7 @@ export function MobileNav({ activeView, onNavigate, onLogout, labels }: MobileNa
 
   return (
     <nav className="lg:hidden fixed bottom-6 left-6 right-6 z-50">
-      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/50 dark:border-slate-800 rounded-[2rem] h-14 flex items-center justify-around shadow-2xl shadow-slate-200/50 dark:shadow-none">
+      <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-2 border-slate-300/60 dark:border-slate-600/50 rounded-[2rem] h-14 flex items-center justify-around shadow-2xl shadow-slate-300/40 dark:shadow-black/40">
         {tabs.map(({ view, label, icon, badge }) => (
           <button
             key={view}
