@@ -47,9 +47,27 @@ async def create_institution(
     user_id: str = Depends(get_current_user_id),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    existing = await db.institutions.find_one({"userId": user_id, "name": data.name})
-    if existing:
-        raise HTTPException(400, detail="Ya existe una institución con ese nombre")
+    active = await db.institutions.find_one({"userId": user_id, "name": data.name, "is_active": True})
+    if active:
+        raise HTTPException(400, detail="Ya existe una institución activa con ese nombre")
+
+    inactive = await db.institutions.find_one({"userId": user_id, "name": data.name, "is_active": False})
+    if inactive:
+        # Reactivar con las nuevas tarifas
+        update_data = {
+            "guardia_rate": data.guardia_rate,
+            "guardia_semana_rate": data.guardia_semana_rate,
+            "guardia_finde_rate": data.guardia_finde_rate,
+            "procedimiento_rate": data.procedimiento_rate,
+            "interconsulta_rate": data.interconsulta_rate,
+            "is_active": True,
+            "updated_at": datetime.utcnow(),
+        }
+        await db.institutions.update_one({"_id": inactive["_id"]}, {"$set": update_data})
+        updated = await db.institutions.find_one({"_id": inactive["_id"]})
+        updated["_id"] = str(updated["_id"])
+        logger.info(f"✅ Institución reactivada: {data.name}")
+        return updated
 
     doc = {
         "userId": user_id,

@@ -69,27 +69,31 @@ export function InstitutionEditForm({ institution, activityMode, onSave, onCance
           Solo necesitás el nombre. Las tarifas no aplican para actividades extra.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="text-[9px] font-black text-slate-700 block mb-1">🇪 Guardia ($/h)</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl">
+            <label className="text-[9px] font-black text-blue-700 dark:text-blue-400 block mb-2 uppercase tracking-widest">
+              Guardia ($/hora)
+            </label>
             <input type="text" inputMode="numeric" value={form.guardiaSemanaRate} onChange={setField('guardiaSemanaRate')}
-              placeholder="Semana" title="Valor por hora de guardia en día de semana (lunes a viernes)"
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white" />
+              placeholder="Semana (lun–vie)" title="Valor por hora de guardia en día de semana (lunes a viernes)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
             <input type="text" inputMode="numeric" value={form.guardiaFindeRate} onChange={setField('guardiaFindeRate')}
-              placeholder="Finde" title="Valor por hora de guardia en fin de semana (sábado o domingo)"
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white mt-1" />
-          </div>
-          <div>
-            <label className="text-[9px] font-black text-slate-700 block mb-1">Otros</label>
-            <input type="text" inputMode="numeric" value={form.procedimientoRate} onChange={setField('procedimientoRate')}
-              placeholder="Proced. unit." title="Valor por procedimiento (ej: RMN, ecografía, cirugía menor)"
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white" />
-            <input type="text" inputMode="numeric" value={form.interconsultaRate} onChange={setField('interconsultaRate')}
-              placeholder="Interc. c/u" title="Valor por interconsulta (ej: evaluación de otra especialidad)"
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-900 dark:text-white mt-1" />
+              placeholder="Fin de semana (sáb–dom)" title="Valor por hora de guardia en fin de semana (sábado o domingo)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
             <input type="text" inputMode="numeric" value={form.guardiaRate} onChange={setField('guardiaRate')}
-              placeholder="Guardia (legacy)" title="Valor anterior de guardia. Si ya completás Semana y Finde arriba, no hace falta llenarlo."
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2 font-bold text-sm text-slate-400 dark:text-slate-500 mt-1" />
+              placeholder="Tarifa única (opcional)" title="Si usás una tarifa única sin diferenciar semana/finde. Si ya pusiste Semana y Finde, dejalo vacío."
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-400 dark:text-slate-500 mt-1.5" />
+          </div>
+          <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-xl">
+            <label className="text-[9px] font-black text-amber-700 dark:text-amber-400 block mb-2 uppercase tracking-widest">
+              Procedimiento / Interconsulta
+            </label>
+            <input type="text" inputMode="numeric" value={form.procedimientoRate} onChange={setField('procedimientoRate')}
+              placeholder="$ por procedimiento" title="Valor por procedimiento (ej: RMN, ecografía, cirugía menor)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
+            <input type="text" inputMode="numeric" value={form.interconsultaRate} onChange={setField('interconsultaRate')}
+              placeholder="$ por interconsulta" title="Valor por interconsulta (ej: evaluación de otra especialidad)"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
           </div>
         </div>
       )}
