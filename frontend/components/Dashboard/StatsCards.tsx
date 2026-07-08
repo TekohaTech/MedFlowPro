@@ -1,4 +1,4 @@
-import { Transaction, PaymentStatus } from '../../types';
+import { Transaction, PaymentStatus, ShiftType } from '../../types';
 import { formatCurrency, formatCurrencyFull } from '../../lib/utils';
 import {
   TrendingUp, TrendingDown, PieChart, Clock,
@@ -59,7 +59,7 @@ export function StatsCards({
           <div className="w-10 lg:w-12 h-10 lg:h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl lg:rounded-2xl flex items-center justify-center">
             <Activity className="w-5 lg:w-6 h-5 lg:h-6" />
           </div>
-          <span className="text-[9px] lg:text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+          <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
             Actividades del Mes
           </span>
         </div>
@@ -79,13 +79,13 @@ export function StatsCards({
           <div className="w-10 lg:w-12 h-10 lg:h-12 bg-white/10 text-white rounded-xl lg:rounded-2xl flex items-center justify-center">
             <PieChart className="w-5 lg:w-6 h-5 lg:h-6" />
           </div>
-          <span className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+          <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
             Comparativa
           </span>
         </div>
         <div className="flex-1 space-y-4 lg:space-y-5">
           <div>
-            <p className="text-[9px] lg:text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-0.5">
+            <p className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-0.5">
               Este mes
             </p>
             <p className="text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-wide mb-1">
@@ -99,7 +99,7 @@ export function StatsCards({
             </span>
           </div>
           <div className="border-t border-white/10 pt-4 lg:pt-5">
-            <p className="text-[9px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">
               Mes pasado
             </p>
             <p className="text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-wide mb-1">
@@ -138,50 +138,68 @@ export function StatsCards({
       <DashboardCard className="bg-blue-600 text-white shadow-xl shadow-blue-500/20">
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between mb-3 lg:mb-4">
-            <p className="text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em] opacity-70">
-              Próxima Guardia
+            <p className="text-xs font-black uppercase tracking-[0.2em] opacity-70">
+              {nextShift?.type === ShiftType.EXTRA ? 'Próximo Extra'
+                : nextShift?.type === ShiftType.CONSULTATION ? 'Próximo Procedimiento'
+                : 'Próxima Guardia'}
             </p>
-            <div className="w-7 lg:w-8 h-7 lg:h-8 bg-white/20 rounded-xl flex items-center justify-center">
-              <Clock className="w-3 lg:w-4 h-3 lg:h-4" />
+            <div className="w-10 lg:w-12 h-10 lg:h-12 bg-white/20 rounded-xl lg:rounded-2xl flex items-center justify-center">
+              <Clock className="w-5 lg:w-6 h-5 lg:h-6" />
             </div>
           </div>
           <div className="flex-1">
             <h3 className="text-lg lg:text-2xl font-black tracking-tight leading-tight truncate">
               {nextShift ? nextShift.institution : 'Sin guardias'}
             </h3>
-            <p className="text-blue-100 font-bold mt-1 uppercase text-[9px] lg:text-[10px] tracking-widest">
-              {nextShift ? `${nextShift.date} \u2022 ${nextShift.startTime || '08:00'}` : 'Agenda disponible'}
-            </p>
             {nextShift && (
               <>
+                <p className="text-blue-100 font-bold mt-1 text-xs tracking-widest">
+                  {new Date(nextShift.date + 'T12:00:00').toLocaleDateString('es-AR', {
+                    weekday: 'short', day: 'numeric', month: 'short'
+                  })}
+                  {nextShift.startTime && <> · {nextShift.startTime}</>}
+                </p>
                 {(() => {
+                  const hasDuration = nextShift.endTime || nextShift.endDate;
+                  if (!hasDuration) return null;
                   const startD = new Date(`${nextShift.date}T${nextShift.startTime || '08:00'}`);
                   const endD = new Date(`${nextShift.endDate || nextShift.date}T${nextShift.endTime || '08:00'}`);
                   const totalH = Math.round((endD.getTime() - startD.getTime()) / 3600000);
+                  if (totalH <= 0) return null;
+                  const isGuardia = nextShift.type === ShiftType.ACTIVE || nextShift.type === ShiftType.PASSIVE;
                   return (
                     <>
-                      <p className="text-blue-200 text-[8px] lg:text-[9px] font-bold mt-1">
-                        {totalH}h \u2022 Sale: {nextShift.endTime || '08:00'}
-                        {nextShift.endDate && nextShift.endDate !== nextShift.date ? ` (${nextShift.endDate})` : ''}
+                      <p className="text-blue-200 text-xs font-bold mt-2">
+                        {totalH} hs{isGuardia ? ' de guardia' : ''}
                       </p>
-                      <p className="text-blue-100 text-[8px] lg:text-[9px] font-black mt-0.5">
-                        Libre a partir de: {nextShift.endDate || nextShift.date} {nextShift.endTime || '08:00'}
+                      <p className="text-blue-100 text-xs font-black mt-0.5">
+                        {nextShift.startTime || '08:00'} → {nextShift.endTime || '08:00'}
+                        {nextShift.endDate && nextShift.endDate !== nextShift.date
+                          ? ` · ${new Date(nextShift.endDate + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                          : ''}
+                      </p>
+                      <p className="text-blue-100/70 text-xs font-bold mt-1.5">
+                        Libre desde las {nextShift.endTime || '08:00'}
                       </p>
                     </>
                   );
                 })()}
                 <div className="flex items-center gap-2 mt-4 lg:mt-6">
-                  <span className="bg-white/20 px-2 lg:px-3 py-1 text-[8px] lg:text-[9px] font-black rounded-lg uppercase">
-                    {nextShift.type}
+                  <span className="bg-white/20 px-2 lg:px-3 py-1 text-xs font-black rounded-lg uppercase">
+                    {nextShift.type === ShiftType.EXTRA ? 'Extra'
+                      : nextShift.type === ShiftType.ACTIVE ? 'Guardia'
+                      : nextShift.type === ShiftType.CONSULTATION ? 'Procedimiento'
+                      : nextShift.type === ShiftType.PASSIVE ? 'Interconsulta'
+                      : nextShift.type}
                   </span>
-                  <span className="bg-white/20 px-2 lg:px-3 py-1 text-[8px] lg:text-[9px] font-black rounded-lg uppercase">
+                  <span className="bg-white/20 px-2 lg:px-3 py-1 text-xs font-black rounded-lg uppercase">
                     {nextShift.status === PaymentStatus.PAID ? 'Pagado' : 'Pendiente'}
                   </span>
                 </div>
               </>
             )}
             {nextOverlapWarning && (
-              <div className="mt-2 bg-red-500/30 px-2 lg:px-3 py-1 rounded-lg text-[8px] lg:text-[9px] font-black text-white">
+              <div className="mt-2 bg-red-500/30 px-2 lg:px-3 py-1 rounded-lg text-xs font-black text-white">
                 {'\u26A0'} Superposición: {nextOverlapWarning}
               </div>
             )}
@@ -189,7 +207,7 @@ export function StatsCards({
           {!nextShift && (
             <button
               onClick={onOpenForm}
-              className="mt-3 lg:mt-4 text-[9px] lg:text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 p-2 rounded-xl text-center"
+              className="mt-3 lg:mt-4 text-xs font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 p-2 rounded-xl text-center"
             >
               Programar ahora
             </button>

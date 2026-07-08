@@ -74,6 +74,9 @@ export function Dashboard({
     for (let i = 0; i < txList.length; i++) {
       for (let j = i + 1; j < txList.length; j++) {
         const a = txList[i], b = txList[j];
+        // skip overlap check when we can't determine end time for either
+        if (!a.endTime && !a.endDate) continue;
+        if (!b.endTime && !b.endDate) continue;
         const aStart = new Date(`${a.date}T${a.startTime || '00:00'}`);
         const aEnd = new Date(`${a.endDate || a.date}T${a.endTime || '23:59'}`);
         const bStart = new Date(`${b.date}T${b.startTime || '00:00'}`);
