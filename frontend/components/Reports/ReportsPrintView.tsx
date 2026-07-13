@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Transaction, PaymentStatus, ShiftType } from '../../types';
 import { formatCurrency } from '../../lib/utils';
 import { format } from 'date-fns';
@@ -58,6 +59,17 @@ export function ReportsPrintView({
   actividades,
   onClose,
 }: ReportsPrintViewProps) {
+  useEffect(() => {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    document.title = `MedFlow Pro - ${day}/${month}/${year}-${hours}:${minutes}h`;
+    return () => { document.title = 'MedFlow Pro'; };
+  }, []);
+
   return (
     <div style={{ padding: '1rem 2rem', maxWidth: '56rem', margin: '0 auto', overflowX: 'hidden' }}>
       <div className="flex justify-between mb-8 print:hidden">
@@ -65,7 +77,12 @@ export function ReportsPrintView({
           <ArrowLeft className="w-4 h-4" />
           Volver
         </Button>
-        <Button size="sm" onClick={() => window.print()}>
+        <Button size="sm" onClick={() => {
+          const now = new Date();
+          const ts = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}-${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}h`;
+          document.title = `MedFlow Pro - ${ts}`;
+          window.print();
+        }}>
           <Printer className="w-4 h-4" />
           Imprimir
         </Button>
