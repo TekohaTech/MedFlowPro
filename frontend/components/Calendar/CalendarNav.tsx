@@ -1,4 +1,4 @@
-import { format, type Locale } from 'date-fns';
+import { format, isSameMonth, type Locale } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 interface CalendarNavProps {
@@ -17,6 +17,8 @@ export function CalendarNav({
   currentDate, locale, t, embedded, selectedDay,
   onPrevMonth, onNextMonth, onGoToToday, onOpenForm,
 }: CalendarNavProps) {
+  const isCurrentMonth = isSameMonth(currentDate, new Date());
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-1 shadow-sm">
@@ -28,9 +30,14 @@ export function CalendarNav({
         </button>
         <button
           onClick={onGoToToday}
-          className="px-4 py-2 text-xs font-black text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all"
+          className="px-4 py-2 text-xs font-black rounded-xl transition-all"
+          title={isCurrentMonth ? undefined : t.hoy}
         >
-          {t.hoy}
+          {isCurrentMonth ? (
+            <span className="text-slate-900 dark:text-white">{t.hoy}</span>
+          ) : (
+            <span className="text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-lg">{format(currentDate, 'MMM', { locale })}</span>
+          )}
         </button>
         <button
           onClick={onNextMonth}

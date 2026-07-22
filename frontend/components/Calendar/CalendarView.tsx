@@ -9,6 +9,7 @@ import { CalendarNav } from './CalendarNav';
 import { CalendarGrid } from './CalendarGrid';
 import { DayDetailsPanel } from './DayDetailsPanel';
 import { getShiftsForDay, findOverlaps } from './calendarUtils';
+import type { OverlapInfo } from './calendarUtils';
 
 interface CalendarViewProps {
   transactions: Transaction[];
@@ -60,10 +61,22 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
       />
 
       {monthSummary.overlaps.length > 0 && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 mb-4">
-          <span className="text-[10px] font-bold text-red-600">
-            ⚠ Superposición detectada: {monthSummary.overlaps.join(', ')}
-          </span>
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 mb-4 space-y-2">
+          <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">
+            ⚠ {monthSummary.overlaps.length} superposición{monthSummary.overlaps.length > 1 ? 'es' : ''} detectada{monthSummary.overlaps.length > 1 ? 's' : ''}
+          </p>
+          {monthSummary.overlaps.map((o: OverlapInfo, i: number) => (
+            <div key={i} className="text-[9px] text-red-500 dark:text-red-400 leading-relaxed">
+              <span className="font-bold">{o.a.institution}</span> — {o.a.date}
+              {o.a.startTime && <span> {o.a.startTime}–{o.a.endTime || '?'}</span>}
+              {' ↔ '}
+              <span className="font-bold">{o.b.institution}</span> — {o.b.date}
+              {o.b.startTime && <span> {o.b.startTime}–{o.b.endTime || '?'}</span>}
+              {o.a.institution === o.b.institution && o.a.date === o.b.date && (
+                <span className="text-red-400 ml-1">(mismo día, horarios se solapan)</span>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

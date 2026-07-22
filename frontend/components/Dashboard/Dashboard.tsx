@@ -10,6 +10,7 @@ import { MonthlyChart } from './MonthlyChart';
 import { TransactionHistory } from './TransactionHistory';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { SearchModal } from './SearchModal';
+import type { OverlapInfo } from '../Calendar/calendarUtils';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -69,8 +70,8 @@ export function Dashboard({
     .sort((a, b) => a.date.localeCompare(b.date));
   const nextShift = upcomingShifts[0] ?? null;
 
-  const findOverlaps = (txList: Transaction[]) => {
-    const warnings: string[] = [];
+  const findOverlaps = (txList: Transaction[]): OverlapInfo[] => {
+    const results: OverlapInfo[] = [];
     for (let i = 0; i < txList.length; i++) {
       for (let j = i + 1; j < txList.length; j++) {
         const a = txList[i], b = txList[j];
@@ -81,14 +82,17 @@ export function Dashboard({
         const aEnd = new Date(`${a.endDate || a.date}T${a.endTime || '23:59'}`);
         const bStart = new Date(`${b.date}T${b.startTime || '00:00'}`);
         const bEnd = new Date(`${b.endDate || b.date}T${b.endTime || '23:59'}`);
-        if (aStart <= bEnd && bStart <= aEnd) warnings.push(`${a.institution} ↔ ${b.institution}`);
+        if (aStart <= bEnd && bStart <= aEnd) {
+          const dateLabel = format(aStart > bStart ? aStart : bStart, 'dd/MM');
+          results.push({ a, b, dateLabel });
+        }
       }
     }
-    return warnings;
+    return results;
   };
 
   const upcomingOverlaps = findOverlaps(upcomingShifts.slice(0, 10));
-  const nextOverlapWarning = upcomingOverlaps[0] ?? null;
+  const nextOverlap = upcomingOverlaps[0] ?? null;
 
   const avatars: Record<string, string> = {
     masc_formal: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=256&h=256&auto=format&fit=crop",
@@ -169,7 +173,7 @@ export function Dashboard({
         currentMonthCounts={currentMonthCounts}
         prevMonthTotal={prevMonthTotal}
         nextShift={nextShift}
-        nextOverlapWarning={nextOverlapWarning}
+        nextOverlap={nextOverlap}
         onOpenForm={onOpenForm}
       />
 

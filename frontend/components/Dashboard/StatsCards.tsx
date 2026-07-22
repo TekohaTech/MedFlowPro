@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { cn } from '../../lib/utils';
+import type { OverlapInfo } from '../Calendar/calendarUtils';
 
 interface MonthCounts {
   guardias: number;
@@ -19,7 +20,7 @@ interface StatsCardsProps {
   currentMonthCounts: MonthCounts;
   prevMonthTotal: number;
   nextShift: Transaction | null;
-  nextOverlapWarning: string | null;
+  nextOverlap: OverlapInfo | null;
   onOpenForm: () => void;
 }
 
@@ -38,7 +39,7 @@ export function StatsCards({
   currentMonthCounts,
   prevMonthTotal,
   nextShift,
-  nextOverlapWarning,
+  nextOverlap,
   onOpenForm,
 }: StatsCardsProps) {
   const now = new Date();
@@ -198,9 +199,13 @@ export function StatsCards({
                 </div>
               </>
             )}
-            {nextOverlapWarning && (
-              <div className="mt-2 bg-red-500/30 px-2 lg:px-3 py-1 rounded-lg text-xs font-black text-white">
-                {'\u26A0'} Superposición: {nextOverlapWarning}
+            {nextOverlap && (
+              <div className="mt-2 bg-red-500/30 px-2 lg:px-3 py-1 rounded-lg text-[10px] font-bold text-white leading-snug">
+                {'\u26A0'} {nextOverlap.a.institution} ↔ {nextOverlap.b.institution}
+                {nextOverlap.a.date === nextOverlap.b.date
+                  ? <span className="ml-1 opacity-80">— {nextOverlap.a.date}{nextOverlap.a.startTime && ` ${nextOverlap.a.startTime}–${nextOverlap.a.endTime || '?'}`}</span>
+                  : <span className="ml-1 opacity-80">— {nextOverlap.a.date} ↔ {nextOverlap.b.date}</span>
+                }
               </div>
             )}
           </div>

@@ -18,9 +18,15 @@ export function isCoverageDay(day: Date, tx: Transaction) {
   return tx.date <= dateString && tx.endDate >= dateString && tx.date !== dateString;
 }
 
-export function findOverlaps(txList: Transaction[]) {
+export interface OverlapInfo {
+  a: Transaction;
+  b: Transaction;
+  dateLabel: string;
+}
+
+export function findOverlaps(txList: Transaction[]): OverlapInfo[] {
   const guardias = txList.filter(tx => tx.type === ShiftType.ACTIVE);
-  const warnings: string[] = [];
+  const results: OverlapInfo[] = [];
   for (let i = 0; i < guardias.length; i++) {
     for (let j = i + 1; j < guardias.length; j++) {
       const a = guardias[i];
@@ -30,9 +36,12 @@ export function findOverlaps(txList: Transaction[]) {
       const bStart = new Date(`${b.date}T${b.startTime || '00:00'}`);
       const bEnd = new Date(`${b.endDate || b.date}T${b.endTime || '23:59'}`);
       if (aStart <= bEnd && bStart <= aEnd) {
-        warnings.push(`${a.institution} ↔ ${b.institution}`);
+        const overlapStart = aStart > bStart ? aStart : bStart;
+        const overlapEnd = aEnd < bEnd ? aEnd : bEnd;
+        const dateLabel = format(overlapStart, 'dd/MM');
+        results.push({ a, b, dateLabel });
       }
     }
   }
-  return warnings;
+  return results;
 }
