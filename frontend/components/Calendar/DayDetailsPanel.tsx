@@ -12,6 +12,7 @@ interface GroupedShift {
 }
 
 function groupShifts(shifts: Transaction[]): GroupedShift[] {
+  // First pass: group by date + institution to find guardias with sub-items
   const groups = new Map<string, Transaction[]>();
   for (const s of shifts) {
     const key = `${s.date}|${s.institution}`;
@@ -20,18 +21,39 @@ function groupShifts(shifts: Transaction[]): GroupedShift[] {
   }
 
   const result: GroupedShift[] = [];
+  const usedIds = new Set<string>();
+
   for (const items of groups.values()) {
-    const guardia = items.find(s => s.type === ShiftType.ACTIVE);
-    if (guardia) {
+    const guardias = items.filter(s => s.type === ShiftType.ACTIVE);
+    const others = items.filter(s => s.type !== ShiftType.ACTIVE);
+
+    if (guardias.length === 1) {
+      // Single guardia: it owns sub-items (procedimientos, etc.)
+      const g = guardias[0];
+      usedIds.add(g.id);
       result.push({
-        guardia,
-        subItems: items.filter(s => s.id !== guardia.id),
+        guardia: g,
+        subItems: others.filter(o => !usedIds.has(o.id)),
         standalone: [],
       });
+      others.forEach(o => usedIds.add(o.id));
+    } else if (guardias.length > 1) {
+      // Multiple guardias on same day+institution: each gets its own group
+      for (const g of guardias) {
+        usedIds.add(g.id);
+        result.push({
+          guardia: g,
+          subItems: [],
+          standalone: [],
+        });
+      }
     } else {
       // No guardia: each item is standalone
       items.forEach(item => {
-        result.push({ guardia: undefined, subItems: [], standalone: [item] });
+        if (!usedIds.has(item.id)) {
+          result.push({ guardia: undefined, subItems: [], standalone: [item] });
+          usedIds.add(item.id);
+        }
       });
     }
   }
