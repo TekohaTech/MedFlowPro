@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: medflow-api
+    runtime: docker
+    repo: https://github.com/juantoledo1/sistMedico.git
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /docs
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_CREATION_SECRET
+        sync: false
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "480"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      - key: CORS_ORIGINS_STR
+        sync: false
+      - key: ENV
+        value: production
