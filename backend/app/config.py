@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     MONGO_URI: str = os.environ.get("MONGO_URI", "mongodb://localhost:27017/medflow")
     SECRET_KEY: str = os.environ.get("SECRET_KEY")
     ADMIN_CREATION_SECRET: str = os.environ.get("ADMIN_CREATION_SECRET")
+    ENV: str = os.environ.get("ENV", "development")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7

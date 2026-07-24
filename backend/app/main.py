@@ -41,8 +41,8 @@ app = FastAPI(
     description="Backend Seguro Multi-Tenant para Gestión Médica de Médicos",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if settings.ENV == "development" else None,
+    redoc_url="/redoc" if settings.ENV == "development" else None,
 )
 
 # CORS ESTRICTO - Solo orígenes permitidos
@@ -101,7 +101,7 @@ async def root():
     """Root endpoint"""
     return {
         "message": "MedFlow Pro API",
-        "docs": "/docs",
+        "docs": "/docs" if settings.ENV == "development" else "disabled",
         "health": "/health"
     }
 
