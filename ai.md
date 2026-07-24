@@ -56,6 +56,7 @@ App de gestión financiera para guardias médicas. Multi-tenant. SaaS. Médicos 
 - **Password reset admin**: genera random, guarda hash, devuelve mensaje. **NUNCA** devuelve el password en texto plano.
 - **PDF con nombre dinámico**: `document.title` se setea antes de `window.print()` con formato `MedFlow Pro - DD/MM/YYYY-HH:MMh`.
 - **Detección de superposiciones**: `findOverlaps()` compara guardias por rango de fechas/horarios. Advertencia en calendar y dashboard con fechas e instituciones.
+- **ENV variable**: controla Swagger/ReDoc. `development` = docs abiertos (`/docs`), `production` = docs deshabilitados (404). Default es `development`. Siempre clonar con `ENV=development`.
 
 ## Gotchas
 
