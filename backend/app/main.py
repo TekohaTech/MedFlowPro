@@ -31,6 +31,9 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"⚠️ MongoDB no conectado: {e}")
     logger.info(f"🔐 Token expire: {settings.ACCESS_TOKEN_EXPIRE_MINUTES} min")
+    logger.info(f"🌍 Environment: {settings.ENV}")
+    if settings.ENV == "production":
+        logger.info("🔒 Swagger/ReDoc deshabilitados (producción)")
     yield
     await disconnect()
     logger.info("🛑 MedFlow Pro API shutting down...")
