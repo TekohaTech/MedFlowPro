@@ -64,9 +64,7 @@ docker-compose.override.yml
 credentials.json
 serviceAccountKey.json
 
-# ==================== AI CONTEXT (LOCAL - NO SUBIR) ====================
-ai.md
-**/ai.md
+# ==================== AI CONTEXT ====================
 migrated_prompt_history/
 
 # ==================== LOGS ====================
