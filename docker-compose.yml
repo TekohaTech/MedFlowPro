@@ -1,6 +1,5 @@
 # MedFlow Pro - Docker Compose
-# Orchestration: MongoDB + Backend + Frontend
-version: '3.8'
+# Orchestration: MongoDB + Backend
 
 services:
   # ==================== MONGODB ====================
@@ -58,23 +57,24 @@ services:
           memory: 512M
 
   # ==================== FRONTEND ====================
-  frontend:
-    image: node:20-alpine
-    container_name: medflow_web
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    working_dir: /app
-    command: sh -c "npm install --ignore-scripts && npm run dev -- --host 0.0.0.0"
-    depends_on:
-      - backend
-    environment:
-      VITE_API_URL: http://localhost:8000
-    networks:
-      - medflow_net
+  # NOTA: Preferir correr directo ("cd frontend && npx vite --host") es más rápido.
+  # Si querés Docker igual:
+  # frontend:
+  #   image: node:20-alpine
+  #   container_name: medflow_web
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+  #   working_dir: /app
+  #   command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+  #   depends_on:
+  #     - backend
+  #   environment:
+  #     VITE_API_URL: http://localhost:8000
+  #   networks:
+  #     - medflow_net
 
 # Redes
 networks:
