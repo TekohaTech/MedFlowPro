@@ -72,6 +72,7 @@ function App() {
               insight={insight}
               onOpenForm={() => openForm()}
               onViewReports={() => handleViewChange("reportes")}
+              onUpdateTransaction={tx.handleUpdateTransaction}
               userProfile={profile}
               settings={settings}
             />

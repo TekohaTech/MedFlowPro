@@ -2,7 +2,7 @@ import { Transaction, PaymentStatus, ShiftType } from '../../types';
 import { cn, formatCurrency } from '../../lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
-import { Clock, Stethoscope, UserCheck, FileText, ArrowRight } from 'lucide-react';
+import { Clock, Stethoscope, UserCheck, FileText } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 
 interface TransactionHistoryProps {
@@ -12,6 +12,7 @@ interface TransactionHistoryProps {
   activityLabel: string;
   emptyLabel: string;
   language: string;
+  onOpenPending?: () => void;
 }
 
 const TYPE_ICON: Record<string, typeof Clock> = {
@@ -53,6 +54,7 @@ export function TransactionHistory({
   activityLabel,
   emptyLabel,
   language,
+  onOpenPending,
 }: TransactionHistoryProps) {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -85,12 +87,14 @@ export function TransactionHistory({
             {activityLabel}
           </h3>
           {pendingCount > 0 && (
-            <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-[10px] font-bold rounded-full">
+            <button
+              onClick={onOpenPending}
+              className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-[10px] font-bold rounded-full hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors cursor-pointer"
+            >
               {pendingCount}
-            </span>
+            </button>
           )}
         </div>
-        <ArrowRight className="w-4 lg:w-5 h-4 lg:h-5 text-slate-400 dark:text-slate-600" />
       </div>
 
       <div className="max-h-[380px] overflow-y-auto overscroll-contain space-y-4 lg:space-y-6">

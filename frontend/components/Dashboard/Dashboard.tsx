@@ -10,6 +10,7 @@ import { MonthlyChart } from './MonthlyChart';
 import { TransactionHistory } from './TransactionHistory';
 import { NotificationsDropdown } from './NotificationsDropdown';
 import { SearchModal } from './SearchModal';
+import { PendingPaymentsModal } from './PendingPaymentsModal';
 import type { OverlapInfo } from '../Calendar/calendarUtils';
 
 interface DashboardProps {
@@ -17,6 +18,7 @@ interface DashboardProps {
   insight: string;
   onOpenForm: () => void;
   onViewReports: () => void;
+  onUpdateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   userProfile: UserProfile;
   settings: UserSettings;
 }
@@ -26,6 +28,7 @@ export function Dashboard({
   insight,
   onOpenForm,
   onViewReports,
+  onUpdateTransaction,
   userProfile,
   settings,
 }: DashboardProps) {
@@ -35,6 +38,13 @@ export function Dashboard({
   const [searchQuery, setSearchQuery] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [pendingOpen, setPendingOpen] = useState(false);
+
+  const pendingTransactions = transactions.filter(t => t.status === PaymentStatus.PENDING);
+
+  const handleMarkAsPaid = async (id: string) => {
+    await onUpdateTransaction(id, { status: PaymentStatus.PAID });
+  };
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -211,6 +221,7 @@ export function Dashboard({
             activityLabel={t.actividad}
             emptyLabel={t.sinActividadesRecientes}
             language={settings.language}
+            onOpenPending={() => setPendingOpen(true)}
           />
         </div>
       </div>
@@ -224,6 +235,14 @@ export function Dashboard({
         onSearchChange={setSearchQuery}
         onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
       />
+
+      {pendingOpen && (
+        <PendingPaymentsModal
+          pending={pendingTransactions}
+          onMarkAsPaid={handleMarkAsPaid}
+          onClose={() => setPendingOpen(false)}
+        />
+      )}
     </div>
   );
 }
