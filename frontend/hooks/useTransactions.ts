@@ -54,30 +54,6 @@ export function useTransactions() {
   const fetchTransactions = async (): Promise<Transaction[]> => {
     const actividades = await api.getActividades();
 
-    if (actividades.length === 0) {
-      const seeded = localStorage.getItem('dev_mode_seeded');
-      if (seeded !== 'true') {
-        const mockData = [
-          { type: "guardia", institution: "Hospital Italiano", date: "2026-05-01", amount: 25000, status: "pagado", notes: "Guardia de 12hs", hours: 12 },
-          { type: "guardia", institution: "Sanatorio Güemes", date: "2026-05-03", amount: 20000, status: "pagado", notes: "Guardia de 12hs", hours: 12 },
-          { type: "procedimiento", institution: "Clínica Olivos", date: "2026-05-05", amount: 15000, status: "pendiente", notes: "Cateterismo diagnóstico", hours: 2 },
-          { type: "interconsulta", institution: "H. Británico", date: "2026-05-07", amount: 18000, status: "pagado", notes: "Interconsulta cardiology", hours: 1 },
-          { type: "guardia", institution: "Hospital Italiano", date: "2026-04-28", amount: 25000, status: "pagado", notes: "Guardia de 12hs", hours: 12 },
-          { type: "procedimiento", institution: "Clínica Olivos", date: "2026-04-25", amount: 22000, status: "pagado", notes: "Angioplastia", hours: 3 },
-          { type: "interconsulta", institution: "Sanatorio Güemes", date: "2026-04-22", amount: 12000, status: "pendiente", notes: "Interconsulta neumonología", hours: 1 },
-          { type: "guardia", institution: "H. Británico", date: "2026-04-15", amount: 20000, status: "pagado", notes: "Guardia de 12hs", hours: 12 },
-        ];
-        for (const a of mockData) {
-          try { await api.createActividad({ type: a.type, institution: a.institution, date: a.date, amount: a.amount, notes: a.notes, hours: a.hours }); } catch {}
-        }
-        localStorage.setItem('dev_mode_seeded', 'true');
-        const recreated = await api.getActividades();
-        const txs = recreated.map(mapApiActivity);
-        setTransactions(txs);
-        return txs;
-      }
-    }
-
     const txs = actividades.map(mapApiActivity);
     setTransactions(txs);
     return txs;
