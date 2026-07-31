@@ -11,10 +11,44 @@ interface ExtraActivity {
   amount: number;
   notes?: string;
   status: PaymentStatus;
+  isNew: boolean;
 }
 
 interface ShiftFormState {
   error?: string;
+}
+
+// Loaded same-day extras keep their REAL id and must UPDATE on submit.
+export function toExtraActivity(t: Transaction): ExtraActivity {
+  return {
+    id: t.id,
+    type: t.type === ShiftType.CONSULTATION ? 'procedimiento' as const : 'interconsulta' as const,
+    procedureName: t.notes?.startsWith('procedimiento') ? t.notes : undefined,
+    specialty: t.notes?.startsWith('interconsulta') ? t.notes : undefined,
+    amount: t.amount,
+    notes: t.notes,
+    status: t.status || PaymentStatus.PENDING,
+    isNew: false,
+  };
+}
+
+// Newly added extras carry an ephemeral id and must be CREATED on submit.
+export function newExtraActivity(rate: number): ExtraActivity {
+  return {
+    id: Math.random().toString(36).slice(2),
+    type: 'procedimiento',
+    procedureName: '',
+    amount: rate,
+    notes: '',
+    status: PaymentStatus.PENDING,
+    isNew: true,
+  };
+}
+
+// Submit-id contract: loaded extras (isNew: false) keep their id → PUT route,
+// added extras (isNew: true) drop it → POST route.
+export function getExtraId(extra: { id: string; isNew: boolean }): string | undefined {
+  return extra.isNew ? undefined : extra.id;
 }
 
 export function useShiftForm(
@@ -79,15 +113,7 @@ export function useShiftForm(
         t.id !== editingTransaction.id &&
         (t.type === ShiftType.CONSULTATION || t.type === ShiftType.PASSIVE)
       );
-      setExtras(sameDayExtras.map(t => ({
-        id: t.id,
-        type: t.type === ShiftType.CONSULTATION ? 'procedimiento' as const : 'interconsulta' as const,
-        procedureName: t.notes?.startsWith('procedimiento') ? t.notes : undefined,
-        specialty: t.notes?.startsWith('interconsulta') ? t.notes : undefined,
-        amount: t.amount,
-        notes: t.notes,
-        status: t.status || PaymentStatus.PENDING,
-      })));
+      setExtras(sameDayExtras.map(toExtraActivity));
     } else {
       setExtras([]);
     }
@@ -144,14 +170,7 @@ export function useShiftForm(
   };
 
   const addExtra = () => {
-    setExtras([...extras, {
-      id: Math.random().toString(36).slice(2),
-      type: 'procedimiento',
-      procedureName: '',
-      amount: selectedInstitution?.procedimiento_rate || 0,
-      notes: '',
-      status: PaymentStatus.PENDING,
-    }]);
+    setExtras([...extras, newExtraActivity(selectedInstitution?.procedimiento_rate || 0)]);
   };
 
   const updateExtra = (id: string, updates: Partial<ExtraActivity>) => {
@@ -235,6 +254,7 @@ export function useShiftForm(
               notes: [extra.type === 'procedimiento' ? extra.procedureName : extra.specialty, extra.notes].filter(Boolean).join(': '),
               procedureName: extra.type === 'procedimiento' ? extra.procedureName : undefined,
               specialty: extra.type === 'interconsulta' ? extra.specialty : undefined,
+              id: getExtraId(extra),
             });
           }
         }

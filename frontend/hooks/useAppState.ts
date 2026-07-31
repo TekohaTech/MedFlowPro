@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Transaction, UserProfile, UserSettings } from '../types';
 import { api } from '../services/api';
-import { GeminiService } from '../services/gemini';
 import { useAuth } from './useAuth';
 import { useTransactions } from './useTransactions';
+import { useFinancialInsight } from './useFinancialInsight';
 
 export type ViewState = "inicio" | "perfil" | "reportes" | "stats" | "admin" | "login" | "registro";
 
@@ -19,7 +19,6 @@ interface UseAppStateReturn {
   isAdmin: boolean;
   settings: UserSettings;
   isLoading: boolean;
-  handleAddTransaction: (newTx: Partial<Transaction>) => Promise<void>;
   openForm: (date?: string, txVal?: Transaction) => void;
   closeForm: () => void;
   handleViewChange: (view: string) => void;
@@ -31,7 +30,6 @@ export function useAppState(): UseAppStateReturn {
   const [activeView, setActiveView] = useState<ViewState>("inicio");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [prefilledDate, setPrefilledDate] = useState<string | undefined>();
-  const [insight, setInsight] = useState<string>("Analizando tus finanzas...");
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [profile, setProfile] = useState<UserProfile>({
     name: "Dr. Rodriguez",
@@ -54,6 +52,7 @@ export function useAppState(): UseAppStateReturn {
 
   const tx = useTransactions();
   const auth = useAuth();
+  const insight = useFinancialInsight(tx.transactions);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -92,24 +91,6 @@ export function useAppState(): UseAppStateReturn {
     }
   }, [auth.isAuthenticated]);
 
-  const gemini = GeminiService.getInstance();
-
-  useEffect(() => {
-    const fetchInsight = async () => {
-      try {
-        const text = await gemini.getFinancialInsight(tx.transactions);
-        setInsight(text);
-      } catch (e) {
-        setInsight("Optimiza tus turnos para aumentar un 15% tus ingresos el próximo mes.");
-      }
-    };
-    fetchInsight();
-  }, [tx.transactions]);
-
-  const handleAddTransaction = async (newTx: Partial<Transaction>) => {
-    await tx.handleAddTransaction(newTx, editingTransaction?.id);
-  };
-
   const openForm = (date?: string, txVal?: Transaction) => {
     setEditingTransaction(txVal || null);
     setPrefilledDate(date);
@@ -141,7 +122,7 @@ export function useAppState(): UseAppStateReturn {
     auth, tx,
     activeView, isFormOpen, prefilledDate, editingTransaction,
     insight, profile, isAdmin, settings, isLoading,
-    handleAddTransaction, openForm, closeForm, handleViewChange,
+    openForm, closeForm, handleViewChange,
     handleUpdateProfile, handleUpdateSettings,
   };
 }

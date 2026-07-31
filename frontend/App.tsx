@@ -17,7 +17,7 @@ function App() {
   const {
     auth, tx, activeView, isFormOpen, prefilledDate, editingTransaction,
     insight, profile, isAdmin, settings, isLoading,
-    handleAddTransaction, openForm, closeForm, handleViewChange,
+    openForm, closeForm, handleViewChange,
     handleUpdateProfile, handleUpdateSettings,
   } = useAppState();
 
@@ -128,7 +128,7 @@ function App() {
       {isFormOpen && (
         <ShiftForm
           onClose={closeForm}
-          onSubmit={handleAddTransaction}
+          onSubmit={tx.handleAddTransaction}
           initialDate={prefilledDate}
           editingTransaction={editingTransaction || undefined}
           transactions={tx.transactions}
