@@ -220,6 +220,8 @@ export function Dashboard({
             pendientesLabel={t.pendientes}
             activityLabel={t.actividad}
             emptyLabel={t.sinActividadesRecientes}
+            pendingButtonLabel={t.porCobrar}
+            pendingButtonTitle={t.verPagosPendientes}
             language={settings.language}
             onOpenPending={() => setPendingOpen(true)}
           />
@@ -241,6 +243,7 @@ export function Dashboard({
           pending={pendingTransactions}
           onMarkAsPaid={handleMarkAsPaid}
           onClose={() => setPendingOpen(false)}
+          language={settings.language}
         />
       )}
     </div>

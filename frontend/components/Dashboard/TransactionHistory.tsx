@@ -11,6 +11,8 @@ interface TransactionHistoryProps {
   pendientesLabel: string;
   activityLabel: string;
   emptyLabel: string;
+  pendingButtonLabel: string;
+  pendingButtonTitle: string;
   language: string;
   onOpenPending?: () => void;
 }
@@ -53,6 +55,8 @@ export function TransactionHistory({
   pendientesLabel,
   activityLabel,
   emptyLabel,
+  pendingButtonLabel,
+  pendingButtonTitle,
   language,
   onOpenPending,
 }: TransactionHistoryProps) {
@@ -88,10 +92,25 @@ export function TransactionHistory({
           </h3>
           {pendingCount > 0 && (
             <button
+              type="button"
               onClick={onOpenPending}
-              className="px-2 py-0.5 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 text-[10px] font-bold rounded-full hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors cursor-pointer"
+              title={pendingButtonTitle}
+              aria-label={`${pendingButtonTitle} (${pendingCount})`}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full",
+                "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300",
+                "border border-orange-300 dark:border-orange-700/60 shadow-sm",
+                "text-[11px] font-bold",
+                "hover:bg-orange-200 dark:hover:bg-orange-800/50 hover:border-orange-400 dark:hover:border-orange-600 hover:shadow",
+                "hover:scale-105 active:scale-95 transition-all cursor-pointer",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+              )}
             >
-              {pendingCount}
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden sm:inline">{pendingButtonLabel}</span>
+              <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-orange-700 text-white text-[10px] leading-none flex items-center justify-center">
+                {pendingCount}
+              </span>
             </button>
           )}
         </div>
