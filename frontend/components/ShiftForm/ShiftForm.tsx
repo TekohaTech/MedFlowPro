@@ -173,9 +173,9 @@ export function ShiftForm({
             /* Guardia mode: hours, rate, datetime, extra activities */
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Horas" type="number" name="hours" value={form.hours}
-                  onChange={(e) => form.setHours(parseInt(e.target.value) || 0)}
-                  placeholder="ej: 12" min={1} />
+                <Input label="Horas" type="text" inputMode="numeric" name="hours" value={form.hours}
+                  onChange={(e) => form.setHours(e.target.value.replace(/\D/g, ''))}
+                  placeholder="ej: 12" />
                 <Input label="$/Hora" type="text" inputMode="numeric" name="hourly_rate" value={form.hourlyRate}
                   onChange={(e) => form.setHourlyRate(e.target.value.replace(/\D/g, ''))}
                   placeholder="ej: 19000" />
@@ -204,12 +204,12 @@ export function ShiftForm({
 
                   {!form.applyWeekdayRule && (
                     <div className="grid grid-cols-2 gap-3 pl-6">
-                      <Input label="Horas semana" type="number" value={form.weekdayHours}
-                        onChange={(e) => form.setWeekdayHours(parseInt(e.target.value) || 0)}
-                        placeholder="ej: 8" min={0} />
-                      <Input label="Horas finde" type="number" value={form.weekendHours}
-                        onChange={(e) => form.setWeekendHours(parseInt(e.target.value) || 0)}
-                        placeholder="ej: 4" min={0} />
+                      <Input label="Horas semana" type="text" inputMode="numeric" value={form.weekdayHours}
+                        onChange={(e) => form.setWeekdayHours(e.target.value.replace(/\D/g, ''))}
+                        placeholder="ej: 8" />
+                      <Input label="Horas finde" type="text" inputMode="numeric" value={form.weekendHours}
+                        onChange={(e) => form.setWeekendHours(e.target.value.replace(/\D/g, ''))}
+                        placeholder="ej: 4" />
                     </div>
                   )}
                 </div>

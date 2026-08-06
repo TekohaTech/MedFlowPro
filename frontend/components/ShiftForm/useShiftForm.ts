@@ -84,7 +84,7 @@ export function useShiftForm(
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   })());
-  const [hours, setHours] = useState<number>(editingTransaction?.duration || 12);
+  const [hours, setHours] = useState<string>(editingTransaction?.duration ? editingTransaction.duration.toString() : '12');
   const [hourlyRate, setHourlyRate] = useState<string>('');
   const [extras, setExtras] = useState<ExtraActivity[]>([]);
   const [shiftSubtype, setShiftSubtype] = useState<'activa' | 'pasiva'>('activa');
@@ -101,8 +101,8 @@ export function useShiftForm(
       ? (editingTransaction!.procedureName || editingTransaction!.specialty || '')
       : ''
   );
-  const [weekdayHours, setWeekdayHours] = useState<number>(0);
-  const [weekendHours, setWeekendHours] = useState<number>(0);
+  const [weekdayHours, setWeekdayHours] = useState<string>('');
+  const [weekendHours, setWeekendHours] = useState<string>('');
 
   useEffect(() => {
     // Solo cargar sub-actividades cuando EDITAMOS una GUARDIA (ACTIVE)
@@ -120,10 +120,10 @@ export function useShiftForm(
   }, [editingTransaction]);
 
   useEffect(() => {
-    if (activityMode === 'guardia' && date && hours > 0 && startTime) {
+    if (activityMode === 'guardia' && date && parseInt(hours) > 0 && startTime) {
       const [sh, sm] = startTime.split(':').map(Number);
       const start = new Date(date + 'T' + startTime);
-      const end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+      const end = new Date(start.getTime() + parseInt(hours) * 60 * 60 * 1000);
       setEndDate(end.toISOString().split('T')[0]);
       setEndTime(`${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`);
     }
@@ -131,10 +131,10 @@ export function useShiftForm(
 
   useEffect(() => {
     if (activityMode === 'guardia') {
-      if (hours > 0 && hourlyRate && hourlyRate.trim() !== '') {
+      if (parseInt(hours) > 0 && hourlyRate && hourlyRate.trim() !== '') {
         const rawRate = parseInt(hourlyRate.replace(/\D/g, '')) || 0;
         const et = extras.reduce((s, e) => s + e.amount, 0);
-        const total = (hours * rawRate) + et;
+        const total = (parseInt(hours) * rawRate) + et;
         if (total > 0) setAmount(total.toLocaleString('es-AR'));
       }
     }
@@ -147,7 +147,7 @@ export function useShiftForm(
       const inst = institutions.find(i => i.name.toLowerCase().trim() === institution.toLowerCase().trim());
       const semanaRate = inst?.guardia_semana_rate ?? inst?.guardia_rate ?? rawSemanaRate;
       const findeRate = inst?.guardia_finde_rate ?? semanaRate;
-      const total = (weekdayHours * (semanaRate || 0)) + (weekendHours * (findeRate || 0));
+      const total = (parseInt(weekdayHours) || 0) * (semanaRate || 0) + (parseInt(weekendHours) || 0) * (findeRate || 0);
       if (total > 0) setAmount(total.toLocaleString('es-AR'));
     }
   }, [activityMode, applyWeekdayRule, endDate, date, weekdayHours, weekendHours, hourlyRate, institution, institutions]);
@@ -240,9 +240,9 @@ export function useShiftForm(
           amount: cleanAmount, date: fDate, endDate: fEndDate,
           startTime: fStartTime, endTime: fEndTime, institution,
           type: ShiftType.ACTIVE, status: fStatus, notes: fNotes,
-          id: editingTransaction?.id, duration: hours, hourlyRate: rawRate, shiftSubtype,
-          weekdayHours: applyWeekdayRule ? undefined : weekdayHours,
-          weekendHours: applyWeekdayRule ? undefined : weekendHours,
+          id: editingTransaction?.id, duration: parseInt(hours) || 0, hourlyRate: rawRate, shiftSubtype,
+          weekdayHours: applyWeekdayRule ? undefined : (parseInt(weekdayHours) || 0),
+          weekendHours: applyWeekdayRule ? undefined : (parseInt(weekendHours) || 0),
         });
 
         for (const extra of extras) {
