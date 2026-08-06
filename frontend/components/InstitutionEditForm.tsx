@@ -29,7 +29,9 @@ export function InstitutionEditForm({ institution, activityMode, onSave, onCance
   const [saving, setSaving] = useState(false);
 
   const setField = (key: FormKey) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(prev => ({ ...prev, [key]: e.target.value }));
+    // Rate fields are numeric-only; strip non-digits on input so letters never appear.
+    const value = key === 'name' ? e.target.value : e.target.value.replace(/\D/g, '');
+    setForm(prev => ({ ...prev, [key]: value }));
   };
 
   const handleSave = async () => {

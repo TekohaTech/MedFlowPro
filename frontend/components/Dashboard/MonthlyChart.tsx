@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { cn } from '../../lib/utils';
-import { smoothPath, formatY } from '../../lib/chartUtils';
+import { smoothPath, formatY, formatTooltipValue } from '../../lib/chartUtils';
 
 interface MonthlyChartProps {
   monthlyData: { label: string; value: number }[];
@@ -12,6 +12,12 @@ interface MonthlyChartProps {
   onYearChange: (year: number) => void;
 }
 
+interface TooltipState {
+  x: number;
+  label: string;
+  value: string;
+}
+
 export function MonthlyChart({
   monthlyData,
   year,
@@ -19,7 +25,7 @@ export function MonthlyChart({
   maxVal,
   onYearChange,
 }: MonthlyChartProps) {
-  const [tooltip, setTooltip] = useState<{ x: number; label: string; value: string } | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   const isCurrentYear = year === new Date().getFullYear();
 
@@ -78,7 +84,7 @@ export function MonthlyChart({
       </div>
 
       {/* ── chart ── */}
-      <div className="relative select-none">
+      <div className="relative select-none" onPointerDown={() => setTooltip(null)}>
         <svg
           viewBox={`0 0 ${w} ${h}`}
           className="w-full h-auto overflow-visible"
@@ -143,7 +149,7 @@ export function MonthlyChart({
           {/* dots + hit zones */}
           {points.map((p, i) => (
             <g key={i}>
-              {/* invisible wider hit zone for hover */}
+              {/* invisible wider hit zone: hover (desktop) + tap (mobile) */}
               <rect
                 x={p.x - 22}
                 y={pad.top}
@@ -151,9 +157,13 @@ export function MonthlyChart({
                 height={chartH}
                 fill="transparent"
                 onMouseEnter={() =>
-                  setTooltip({ x: p.x, label: p.label, value: `$${p.value.toLocaleString('es-AR')}` })
+                  setTooltip({ x: p.x, label: p.label, value: formatTooltipValue(p.value) })
                 }
                 onMouseLeave={() => setTooltip(null)}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  setTooltip({ x: p.x, label: p.label, value: formatTooltipValue(p.value) });
+                }}
                 className="cursor-pointer"
               />
               {p.value > 0 && (
@@ -175,19 +185,7 @@ export function MonthlyChart({
         </svg>
 
         {/* tooltip */}
-        {tooltip && (
-          <div
-            className="absolute -translate-x-1/2 pointer-events-none z-20 transition-all duration-150"
-            style={{
-              left: `${(tooltip.x / w) * 100}%`,
-              top: '-8px',
-            }}
-          >
-            <div className="bg-slate-900 dark:bg-slate-700 text-white text-[10px] lg:text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
-              {tooltip.label}: {tooltip.value}
-            </div>
-          </div>
-        )}
+        <ChartTooltip tooltip={tooltip} viewBoxWidth={w} />
 
         {/* month labels */}
         <div className="flex justify-between px-0 mt-1" style={{ paddingLeft: `${(pad.left / w) * 100}%`, paddingRight: `${(pad.right / w) * 100}%` }}>
@@ -208,5 +206,22 @@ export function MonthlyChart({
         </div>
       </div>
     </DashboardCard>
+  );
+}
+
+function ChartTooltip({ tooltip, viewBoxWidth }: { tooltip: TooltipState | null; viewBoxWidth: number }) {
+  if (!tooltip) return null;
+  return (
+    <div
+      className="absolute -translate-x-1/2 pointer-events-none z-20 transition-all duration-150"
+      style={{
+        left: `${(tooltip.x / viewBoxWidth) * 100}%`,
+        top: '-8px',
+      }}
+    >
+      <div className="bg-slate-900 dark:bg-slate-700 text-white text-[10px] lg:text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
+        {tooltip.label}: {tooltip.value}
+      </div>
+    </div>
   );
 }

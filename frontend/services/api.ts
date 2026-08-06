@@ -1,4 +1,5 @@
 import { Institution } from '../types';
+import { PROFILE_STORAGE_KEY } from '../lib/profileCache';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -156,6 +157,8 @@ class APIService {
   logout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    // Never leak the previous user's cached profile to the next login on this device.
+    localStorage.removeItem(PROFILE_STORAGE_KEY);
   }
 
   // ==================== ACTIVIDADES ====================

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Transaction, UserProfile, UserSettings } from '../types';
 import { api } from '../services/api';
+import { loadCachedProfile, saveCachedProfile, profileFromApi, DEMO_PROFILE } from '../lib/profileCache';
 import { useAuth } from './useAuth';
 import { useTransactions } from './useTransactions';
 import { useFinancialInsight } from './useFinancialInsight';
@@ -31,12 +32,7 @@ export function useAppState(): UseAppStateReturn {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [prefilledDate, setPrefilledDate] = useState<string | undefined>();
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [profile, setProfile] = useState<UserProfile>({
-    name: "Dr. Rodriguez",
-    specialty: "Cardiología",
-    institution: "Hospital Italiano",
-    avatar: "masc_doctor",
-  });
+  const [profile, setProfile] = useState<UserProfile>(() => loadCachedProfile() ?? DEMO_PROFILE);
   const [isAdmin, setIsAdmin] = useState(false);
 
   // Load persisted settings from localStorage
@@ -75,15 +71,14 @@ export function useAppState(): UseAppStateReturn {
       (async () => {
         try {
           const userProfile = await api.getProfile();
-          setProfile({
-            name: userProfile.full_name || "Dr. Usuario",
-            specialty: userProfile.specialty || "Medicina",
-            institution: userProfile.institution || "",
-            avatar: userProfile.avatar || "masc_doctor",
-          });
+          const nextProfile = profileFromApi(userProfile);
+          setProfile(nextProfile);
+          saveCachedProfile(nextProfile);
           setIsAdmin(userProfile.is_admin || false);
           if (userProfile.is_admin) setActiveView("admin");
-        } catch {}
+        } catch (error) {
+          console.error("Error loading profile:", error);
+        }
       })();
       tx.fetchInstitutions().finally(() => setIsLoading(false));
     } else {
@@ -108,7 +103,9 @@ export function useAppState(): UseAppStateReturn {
   };
 
   const handleUpdateProfile = async (p: Partial<UserProfile>) => {
-    setProfile({ ...profile, ...p });
+    const updated = { ...profile, ...p };
+    setProfile(updated);
+    saveCachedProfile(updated);
     try { await api.updateProfile(p); } catch {}
   };
 

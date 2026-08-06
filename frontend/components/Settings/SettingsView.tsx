@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { UserProfile, UserSettings } from '../../types';
 import { User, Globe, Moon, Sun, ChevronRight, Check, Bell, KeyRound } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { AVATARS, avatarUrl } from '../../lib/avatars';
 import { translations } from '../../translations';
 import { Label } from '../ui/Label';
 import { Button } from '../ui/Button';
@@ -28,14 +29,6 @@ export function SettingsView({
   const [showNotifications, setShowNotifications] = useState(false);
 
   const t = translations[settings.language];
-  const avatars = {
-    masc_formal: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=256&h=256&auto=format&fit=crop",
-    masc_doctor: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=256&h=256&auto=format&fit=crop",
-    masc_scrubs: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=256&h=256&auto=format&fit=crop",
-    fem_formal: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256&h=256&auto=format&fit=crop",
-    fem_doctor: "https://images.unsplash.com/photo-1628595351029-c2bf17511435?q=80&w=256&h=256&auto=format&fit=crop",
-    fem_scrubs: "https://images.unsplash.com/photo-1551076805-e1869033e561?q=80&w=256&h=256&auto=format&fit=crop",
-  };
 
   return (
     <div className="p-4 lg:p-10 max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-32">
@@ -57,7 +50,7 @@ export function SettingsView({
             <div className="relative group">
               <div className="absolute inset-0 bg-blue-500 rounded-3xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
               <img 
-                src={avatars[profile.avatar]} 
+                src={avatarUrl(profile.avatar)} 
                 className="w-40 h-40 rounded-[2.5rem] border-4 border-white dark:border-slate-700 shadow-2xl object-cover bg-slate-50 dark:bg-slate-900 relative z-10 transition-transform duration-500 group-hover:scale-105" 
                 alt="Avatar" 
               />
@@ -66,7 +59,7 @@ export function SettingsView({
               </div>
             </div>
             <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-              {(Object.keys(avatars) as Array<keyof typeof avatars>).map((type) => (
+              {(Object.keys(AVATARS) as UserProfile['avatar'][]).map((type) => (
                 <button
                   key={type}
                   onClick={() => onUpdateProfile({ avatar: type })}
@@ -77,7 +70,7 @@ export function SettingsView({
                       : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 opacity-60 hover:opacity-100"
                   )}
                 >
-                  <img src={avatars[type]} alt={type} className="w-full h-full object-cover rounded-xl" />
+                  <img src={avatarUrl(type)} alt={type} className="w-full h-full object-cover rounded-xl" />
                 </button>
               ))}
             </div>

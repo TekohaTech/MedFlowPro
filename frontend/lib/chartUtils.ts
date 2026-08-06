@@ -24,3 +24,8 @@ export function formatY(val: number): string {
   if (val >= 1_000) return `$${Math.round(val / 1000)}K`;
   return `$${val}`;
 }
+
+// Tooltip amount for MonthlyChart: es-AR thousands separator, no decimals.
+export function formatTooltipValue(value: number): string {
+  return `$${value.toLocaleString('es-AR')}`;
+}

@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Transaction, PaymentStatus, ShiftType, UserProfile, UserSettings } from '../../types';
 import { Search, Bell, Plus, PieChart } from 'lucide-react';
 import { cn, formatCurrency } from '../../lib/utils';
+import { avatarUrl } from '../../lib/avatars';
 import { translations } from '../../translations';
 import { useNotifications } from '../../hooks/useNotifications';
 import { StatsCards } from './StatsCards';
@@ -104,17 +105,6 @@ export function Dashboard({
   const upcomingOverlaps = findOverlaps(upcomingShifts.slice(0, 10));
   const nextOverlap = upcomingOverlaps[0] ?? null;
 
-  const avatars: Record<string, string> = {
-    masc_formal: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?q=80&w=256&h=256&auto=format&fit=crop",
-    masc_doctor: "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=256&h=256&auto=format&fit=crop",
-    masc_scrubs: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=256&h=256&auto=format&fit=crop",
-    fem_formal: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=256&h=256&auto=format&fit=crop",
-    fem_doctor: "https://images.unsplash.com/photo-1628595351029-c2bf17511435?q=80&w=256&h=256&auto=format&fit=crop",
-    fem_scrubs: "https://images.unsplash.com/photo-1551076805-e1869033e561?q=80&w=256&h=256&auto=format&fit=crop",
-  };
-
-  const avatarUrl = avatars[userProfile.avatar] || avatars.masc_doctor;
-
   const getMonthlyPerformance = (yr: number) => {
     const months = [];
     for (let i = 0; i < 12; i++) {
@@ -142,7 +132,7 @@ export function Dashboard({
         <div className="flex items-center gap-4">
           <div className="relative group">
             <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
-            <img src={avatarUrl}
+            <img src={avatarUrl(userProfile.avatar)}
               className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl border-2 border-white dark:border-slate-700 shadow-xl relative z-10 bg-slate-50 dark:bg-slate-800 object-cover" />
             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-4 border-white dark:border-slate-900 rounded-full z-20" />
           </div>

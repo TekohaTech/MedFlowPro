@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { smoothPath, formatY } from './chartUtils';
+import { smoothPath, formatY, formatTooltipValue } from './chartUtils';
 
 describe('smoothPath', () => {
   it('returns empty string for no points', () => {
@@ -56,5 +56,19 @@ describe('formatY', () => {
 
   it('formats boundary 1000000 as $1.0M', () => {
     expect(formatY(1000000)).toBe('$1.0M');
+  });
+});
+
+describe('formatTooltipValue', () => {
+  it('formats amounts with es-AR thousands separator', () => {
+    expect(formatTooltipValue(5000)).toBe('$5.000');
+  });
+
+  it('formats large amounts with full separator groups', () => {
+    expect(formatTooltipValue(1234567)).toBe('$1.234.567');
+  });
+
+  it('formats zero', () => {
+    expect(formatTooltipValue(0)).toBe('$0');
   });
 });
