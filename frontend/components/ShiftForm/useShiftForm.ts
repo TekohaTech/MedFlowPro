@@ -160,9 +160,10 @@ export function useShiftForm(
     i.name.toLowerCase().trim() === institution.toLowerCase().trim() && i.is_active
   );
 
-  const handleSelectInstitution = (name: string) => {
+  const handleSelectInstitution = (name: string, institution?: Institution) => {
     setInstitution(name);
-    const inst = institutions.find(i => i.name.toLowerCase().trim() === name.toLowerCase().trim());
+    // Si viene la institución completa (recién creada), usarla directo para cargar el rate
+    const inst = institution ?? institutions.find(i => i.name.toLowerCase().trim() === name.toLowerCase().trim());
     if (inst) {
       const rate = inst.guardia_semana_rate ?? inst.guardia_rate;
       if (rate !== null && rate !== undefined) setHourlyRate(rate.toString());

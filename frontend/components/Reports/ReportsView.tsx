@@ -34,7 +34,7 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
 
   if (showPrintView) {
     return (
-      <div className="fixed inset-0 z-[200] bg-white dark:bg-slate-900 print:bg-white" style={{ overflowY: 'auto' }}>
+      <div className="fixed inset-0 z-[200] bg-white dark:bg-slate-900 print:bg-white overflow-y-auto print:static print:inset-auto print:overflow-visible print:h-auto">
         <ReportsPrintView
           periodLabel={periodLabels[periodFilter]}
           institutionLabel={institutionFilter !== 'Todas' ? institutionFilter : ''}

@@ -9,7 +9,7 @@ import { InstitutionEditForm } from './InstitutionEditForm';
 interface InstitutionPickerProps {
   institutions: Institution[];
   selected: string;
-  onSelect: (name: string) => void;
+  onSelect: (name: string, inst?: Institution) => void;
   onInstitutionChange: (inst: Institution) => void;
   onInstitutionDelete: (id: string) => void;
   activityMode?: 'guardia' | 'extra';
@@ -57,7 +57,7 @@ export function InstitutionPicker({
           activityMode={activityMode}
           onSave={(inst, newName) => {
             onInstitutionChange(inst);
-            if (newName) onSelect(newName);
+            if (newName) onSelect(newName, inst);
             setInstEditTarget(null);
           }}
           onCancel={() => setInstEditTarget(null)}

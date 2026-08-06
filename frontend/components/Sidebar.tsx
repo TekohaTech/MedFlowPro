@@ -47,7 +47,7 @@ export function Sidebar({ activeView, isAdmin, insight, onNavigate, onLogout, la
   const { unreadCount } = useNotifications();
 
   return (
-    <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col p-6 sticky top-0 h-screen transition-colors duration-300 dark:bg-slate-900 dark:border-slate-800">
+    <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col p-6 sticky top-0 h-screen transition-colors duration-300 dark:bg-slate-900 dark:border-slate-800 print:hidden">
       <div className="flex items-center gap-3 mb-10 px-2">
         <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-2xl shadow-blue-500/20 rotate-3">
           <Sparkles className="w-5 h-5 text-white" />

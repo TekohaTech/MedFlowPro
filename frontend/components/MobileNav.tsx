@@ -25,7 +25,7 @@ export function MobileNav({ activeView, onNavigate, onLogout, labels }: MobileNa
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-6 left-6 right-6 z-50">
+    <nav className="lg:hidden fixed bottom-6 left-6 right-6 z-50 print:hidden">
       <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-2 border-slate-300/60 dark:border-slate-600/50 rounded-[2rem] h-14 flex items-center justify-around shadow-2xl shadow-slate-300/40 dark:shadow-black/40">
         {tabs.map(({ view, label, icon, badge }) => (
           <button
@@ -67,7 +67,7 @@ interface MobileFabProps {
 export function MobileFab({ visible, onClick }: MobileFabProps) {
   if (!visible) return null;
   return (
-    <div className="lg:hidden fixed bottom-28 right-6 z-40">
+    <div className="lg:hidden fixed bottom-28 right-6 z-40 print:hidden">
       <button
         onClick={onClick}
         className="w-16 h-16 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white shadow-2xl"

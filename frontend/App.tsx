@@ -64,7 +64,7 @@ function App() {
         labels={{ inicio: t.inicio, guardias: t.guardias || "Guardias", ajustes: t.ajustes }}
       />
 
-      <main className="flex-1 flex flex-col relative pb-32 lg:pb-0 overflow-hidden">
+      <main className="flex-1 flex flex-col relative pb-32 lg:pb-0 overflow-hidden print:overflow-visible print:pb-0">
         <div className="flex-1 overflow-y-auto">
           {activeView === "inicio" && (
             <Dashboard
