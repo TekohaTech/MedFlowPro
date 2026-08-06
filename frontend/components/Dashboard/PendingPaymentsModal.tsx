@@ -76,7 +76,7 @@ export function PendingPaymentsModal({ pending, onMarkAsPaid, onClose, language 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-t-2xl lg:rounded-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-bottom-0 duration-300">
+      <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-t-2xl lg:rounded-2xl max-h-[85dvh] pb-[max(env(safe-area-inset-bottom),0.5rem)] flex flex-col shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-bottom-0 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-slate-200 dark:border-slate-700">
           <div>
@@ -137,7 +137,7 @@ export function PendingPaymentsModal({ pending, onMarkAsPaid, onClose, language 
         )}
 
         {/* List */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 lg:p-6 space-y-2">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-6 space-y-2">
           {sorted.length === 0 ? (
             <div className="text-center py-8">
               <CreditCard className="w-12 h-12 mx-auto text-emerald-400 mb-3" />
