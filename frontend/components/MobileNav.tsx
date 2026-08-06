@@ -1,9 +1,10 @@
-import { LayoutGrid, Calendar, BarChart3, Settings, LogOut, Plus } from 'lucide-react';
+import { LayoutGrid, Calendar, BarChart3, Settings, LogOut, Plus, Shield } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNotifications } from '../hooks/useNotifications';
 
 interface MobileNavProps {
   activeView: string;
+  isAdmin: boolean;
   onNavigate: (view: string) => void;
   onLogout: () => void;
   labels: {
@@ -14,15 +15,20 @@ interface MobileNavProps {
   };
 }
 
-export function MobileNav({ activeView, onNavigate, onLogout, labels }: MobileNavProps) {
+export function MobileNav({ activeView, isAdmin, onNavigate, onLogout, labels }: MobileNavProps) {
   const { unreadCount } = useNotifications();
 
-  const tabs = [
-    { view: "inicio", label: labels.inicio, icon: <LayoutGrid className="w-[18px] h-[18px]" /> },
-    { view: "reportes", label: labels.turnos, icon: <Calendar className="w-[18px] h-[18px]" /> },
-    { view: "stats", label: labels.estadisticas, icon: <BarChart3 className="w-[18px] h-[18px]" /> },
-    { view: "perfil", label: labels.ajustes, icon: <Settings className="w-[18px] h-[18px]" />, badge: unreadCount },
-  ];
+  const tabs = isAdmin
+    ? [
+        { view: "admin", label: "Admin", icon: <Shield className="w-[18px] h-[18px]" /> },
+        { view: "perfil", label: labels.ajustes, icon: <Settings className="w-[18px] h-[18px]" />, badge: unreadCount },
+      ]
+    : [
+        { view: "inicio", label: labels.inicio, icon: <LayoutGrid className="w-[18px] h-[18px]" /> },
+        { view: "reportes", label: labels.turnos, icon: <Calendar className="w-[18px] h-[18px]" /> },
+        { view: "stats", label: labels.estadisticas, icon: <BarChart3 className="w-[18px] h-[18px]" /> },
+        { view: "perfil", label: labels.ajustes, icon: <Settings className="w-[18px] h-[18px]" />, badge: unreadCount },
+      ];
 
   return (
     <nav className="lg:hidden fixed bottom-6 left-6 right-6 z-50 print:hidden">

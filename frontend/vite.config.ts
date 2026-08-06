@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
       },
       test: {
         include: ['lib/**/*.test.ts', 'components/**/*.test.ts', 'components/**/*.test.tsx', 'hooks/**/*.test.ts'],
+        forbidOnly: true,
       },
     };
 });

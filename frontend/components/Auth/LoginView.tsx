@@ -1,6 +1,7 @@
 import { useActionState, useState } from 'react';
 import { Eye, EyeOff, Sparkles } from 'lucide-react';
 import { translations, Language } from '../../translations';
+import { supportMailto } from '../../lib/support';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
 
@@ -124,6 +125,14 @@ export function LoginView({ onLogin, loginError, isLoading, settings, onNavigate
               {t.registrate}
             </button>
           </p>
+
+          <a
+            href={supportMailto()}
+            className="flex items-center justify-center gap-1.5 text-slate-400 hover:text-blue-600 text-sm font-medium py-2.5 transition-colors mt-1"
+          >
+            <span>{t.ayuda}</span>
+            <span className="underline">{t.contacto}</span>
+          </a>
         </div>
       </div>
     </div>

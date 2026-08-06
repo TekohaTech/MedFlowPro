@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { UserProfile, UserSettings } from '../../types';
-import { User, Globe, Moon, Sun, ChevronRight, Check, Bell, KeyRound } from 'lucide-react';
+import { User, Globe, Moon, Sun, Check, Bell, KeyRound, HelpCircle, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { AVATARS, avatarUrl } from '../../lib/avatars';
+import { SUPPORT_EMAIL, supportMailto } from '../../lib/support';
 import { translations } from '../../translations';
 import { Label } from '../ui/Label';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { PasswordModal } from './PasswordModal';
 import { NotificationsList } from './NotificationsList';
+import { SettingItem } from './SettingItem';
 
 interface SettingsViewProps {
   profile: UserProfile;
@@ -144,6 +146,16 @@ export function SettingsView({
         )}
       </Card>
 
+      {/* Support */}
+      <Card padding="xl" className="shadow-xl shadow-slate-100/40 dark:shadow-none">
+        <SettingItem
+          icon={<HelpCircle className="w-5 h-5" />}
+          label={t.ayudaSoporte}
+          value={SUPPORT_EMAIL}
+          href={supportMailto({ name: profile.name })}
+        />
+      </Card>
+
       <div className="text-center pt-4">
         <p className="text-slate-400 text-xs font-medium">MedFlow Pro v1.0.5 • © 2026</p>
       </div>
@@ -152,33 +164,3 @@ export function SettingsView({
     </div>
   );
 };
-
-const SettingItem = ({ icon, label, value, onClick, disabled = false }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  onClick?: () => void;
-  disabled?: boolean;
-}) => (
-  <button 
-    onClick={onClick}
-    disabled={disabled}
-    className={cn(
-      "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
-      disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50 dark:hover:bg-slate-900 group"
-    )}
-  >
-    <div className="flex items-center gap-4 min-w-0 flex-1">
-      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-600 dark:text-slate-400 group-hover:text-blue-600 transition-colors shrink-0">
-        {icon}
-      </div>
-      <div className="min-w-0">
-        <div className="font-bold text-slate-700 dark:text-slate-200 truncate leading-tight">{label}</div>
-        {value && (
-          <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate leading-tight mt-0.5">{value}</div>
-        )}
-      </div>
-    </div>
-    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0 ml-2" />
-  </button>
-);

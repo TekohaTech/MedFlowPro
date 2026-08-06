@@ -107,7 +107,7 @@ function App() {
           {activeView === "admin" && (
             <AdminView
               settings={settings}
-              onBack={() => handleViewChange("inicio")}
+              onBack={() => handleViewChange("perfil")}
             />
           )}
         </div>
@@ -119,6 +119,7 @@ function App() {
 
         <MobileNav
           activeView={activeView}
+          isAdmin={isAdmin}
           onNavigate={handleViewChange}
           onLogout={auth.handleLogout}
           labels={{ inicio: t.inicio, turnos: t.guardias, estadisticas: t.estadisticas, ajustes: t.ajustes }}
