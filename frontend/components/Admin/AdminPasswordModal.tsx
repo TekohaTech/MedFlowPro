@@ -14,7 +14,7 @@ interface AdminPasswordModalProps {
 export function AdminPasswordModal({ show, password, userName, userEmail, copied, onCopy, onClose }: AdminPasswordModalProps) {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center" onClick={e => e.stopPropagation()}>
         <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <KeyRound className="w-7 h-7 text-green-600" />

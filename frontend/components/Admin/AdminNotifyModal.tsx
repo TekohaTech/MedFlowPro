@@ -79,7 +79,7 @@ export function AdminNotifyModal({
   const filterLabel = currentFilter === 'all' ? 'todos' : currentFilter;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-3xl w-full max-w-lg mx-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100">
