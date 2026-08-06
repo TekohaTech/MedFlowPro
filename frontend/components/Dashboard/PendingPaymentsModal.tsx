@@ -75,7 +75,7 @@ export function PendingPaymentsModal({ pending, onMarkAsPaid, onClose, language 
   const markAllTotal = filtered.reduce((acc, tx) => acc + tx.amount, 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-end lg:items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-t-2xl lg:rounded-2xl max-h-[85dvh] pb-[max(env(safe-area-inset-bottom),0.5rem)] flex flex-col shadow-2xl animate-in slide-in-from-bottom lg:slide-in-from-bottom-0 duration-300">
         {/* Header */}
         <div className="flex items-center justify-between p-4 lg:p-6 border-b border-slate-200 dark:border-slate-700">
