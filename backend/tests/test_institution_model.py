@@ -55,6 +55,24 @@ class TestInstitutionBase:
         assert inst.guardia_semana_rate == 0
         assert inst.guardia_finde_rate == 0
 
+    def test_accepts_decimal_rates(self):
+        """Rates support decimals (e.g. 1250.5 pesos/hora)."""
+        inst = InstitutionBase(
+            name="Test Inst",
+            guardia_semana_rate=1250.5,
+            guardia_feriado_rate=8000.25,
+        )
+        assert inst.guardia_semana_rate == 1250.5
+        assert inst.guardia_feriado_rate == 8000.25
+
+    def test_accepts_integer_rates_as_float(self):
+        """Whole-number rates keep working (Pydantic coerces int → float)."""
+        inst = InstitutionBase(
+            name="Test Inst",
+            guardia_semana_rate=5000,
+        )
+        assert inst.guardia_semana_rate == 5000
+
 
 class TestInstitutionUpdate:
     """InstitutionUpdate model should accept the new guardia rate fields."""

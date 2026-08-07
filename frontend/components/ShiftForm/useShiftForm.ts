@@ -1,5 +1,7 @@
 import { useState, useEffect, useActionState } from 'react';
 import { ShiftType, Transaction, PaymentStatus, type Institution } from '../../types';
+import { esFeriado } from '../../lib/feriados';
+import { parseAmount } from '../../lib/utils';
 
 type ActivityMode = 'guardia' | 'extra';
 
@@ -49,6 +51,19 @@ export function newExtraActivity(rate: number): ExtraActivity {
 // added extras (isNew: true) drop it → POST route.
 export function getExtraId(extra: { id: string; isNew: boolean }): string | undefined {
   return extra.isNew ? undefined : extra.id;
+}
+
+// Holiday rule: on a national holiday, the institution's feriado rate wins
+// over the manual/weekday rate. Falls back to the manual rate otherwise.
+export function resolveGuardiaRate(
+  date: string,
+  inst: Institution | undefined,
+  manualRate: number,
+): number {
+  if (esFeriado(date) && inst?.guardia_feriado_rate != null) {
+    return inst.guardia_feriado_rate;
+  }
+  return manualRate;
 }
 
 export function useShiftForm(
@@ -104,6 +119,12 @@ export function useShiftForm(
   const [weekdayHours, setWeekdayHours] = useState<string>('');
   const [weekendHours, setWeekendHours] = useState<string>('');
 
+  // Declared BEFORE the effects below: the holiday-rate effect depends on it,
+  // and a const referenced in a useEffect deps array must already be initialized.
+  const selectedInstitution = institutions.find(i =>
+    i.name.toLowerCase().trim() === institution.toLowerCase().trim() && i.is_active
+  );
+
   useEffect(() => {
     // Solo cargar sub-actividades cuando EDITAMOS una GUARDIA (ACTIVE)
     if (editingTransaction && editingTransaction.type === ShiftType.ACTIVE && transactions) {
@@ -132,18 +153,19 @@ export function useShiftForm(
   useEffect(() => {
     if (activityMode === 'guardia') {
       if (parseInt(hours) > 0 && hourlyRate && hourlyRate.trim() !== '') {
-        const rawRate = parseInt(hourlyRate.replace(/\D/g, '')) || 0;
+        const rawRate = parseAmount(hourlyRate);
+        const rate = resolveGuardiaRate(date, selectedInstitution, rawRate);
         const et = extras.reduce((s, e) => s + e.amount, 0);
-        const total = (parseInt(hours) * rawRate) + et;
+        const total = (parseInt(hours) * rate) + et;
         if (total > 0) setAmount(total.toLocaleString('es-AR'));
       }
     }
-  }, [activityMode, hours, hourlyRate, extras]);
+  }, [activityMode, hours, hourlyRate, extras, date, selectedInstitution]);
 
   // Calculate amount for extra mode with weekday/weekend split
   useEffect(() => {
     if (activityMode === 'guardia' && !applyWeekdayRule && endDate && endDate !== date) {
-      const rawSemanaRate = parseInt(hourlyRate.replace(/\D/g, '')) || 0;
+      const rawSemanaRate = parseAmount(hourlyRate);
       const inst = institutions.find(i => i.name.toLowerCase().trim() === institution.toLowerCase().trim());
       const semanaRate = inst?.guardia_semana_rate ?? inst?.guardia_rate ?? rawSemanaRate;
       const findeRate = inst?.guardia_finde_rate ?? semanaRate;
@@ -156,17 +178,16 @@ export function useShiftForm(
     if (initialDate && !editingTransaction) setDate(initialDate);
   }, [initialDate, editingTransaction]);
 
-  const selectedInstitution = institutions.find(i =>
-    i.name.toLowerCase().trim() === institution.toLowerCase().trim() && i.is_active
-  );
-
   const handleSelectInstitution = (name: string, institution?: Institution) => {
     setInstitution(name);
     // Si viene la institución completa (recién creada), usarla directo para cargar el rate
     const inst = institution ?? institutions.find(i => i.name.toLowerCase().trim() === name.toLowerCase().trim());
     if (inst) {
-      const rate = inst.guardia_semana_rate ?? inst.guardia_rate;
-      if (rate !== null && rate !== undefined) setHourlyRate(rate.toString());
+      const rate = resolveGuardiaRate(date, inst, inst.guardia_semana_rate ?? inst.guardia_rate ?? 0);
+      // es-AR format exactly like RateEditor ('1.250,5'): a raw '1250.5' would
+      // be misread as thousands-dot by formatMoneyInput on the next keystroke
+      // ('1250.5' + '0' → '125.050' → 125050 pesos).
+      if (rate !== null && rate !== undefined) setHourlyRate(rate.toLocaleString('es-AR'));
     }
   };
 
@@ -187,7 +208,8 @@ export function useShiftForm(
   const [formState, formAction, isPending] = useActionState(
     async (prev: ShiftFormState, formData: FormData) => {
       const rawAmount = formData.get('amount_display') as string || amount;
-      const cleanAmount = parseInt(rawAmount.replace(/\./g, '')) || 0;
+      // Preserve 2 decimals from es-AR formatted input: '$1.250,50' → 1250.5
+      const cleanAmount = parseAmount(rawAmount);
       if (cleanAmount <= 0) return { error: 'Completá todos los campos obligatorios' };
       if (activityMode !== 'extra' && !institution) return { error: 'Completá todos los campos obligatorios' };
 
@@ -229,7 +251,7 @@ export function useShiftForm(
           return {};
         }
 
-        const rawRate = parseInt((formData.get('hourly_rate') as string || hourlyRate).replace(/\D/g, '')) || 0;
+        const rawRate = parseAmount(formData.get('hourly_rate') as string || hourlyRate);
         const fDate = formData.get('date') as string || date;
         const fEndDate = formData.get('end_date') as string || endDate;
         const fStartTime = formData.get('start_time') as string || startTime;

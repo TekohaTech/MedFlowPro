@@ -57,18 +57,26 @@ describe('formatY', () => {
   it('formats boundary 1000000 as $1.0M', () => {
     expect(formatY(1000000)).toBe('$1.0M');
   });
+
+  it('shows real pesos amounts — a 60.000 guardia renders as 60K, not 600', () => {
+    expect(formatY(60000)).toBe('$60K');
+  });
 });
 
 describe('formatTooltipValue', () => {
-  it('formats amounts with es-AR thousands separator', () => {
-    expect(formatTooltipValue(5000)).toBe('$5.000');
+  it('formats amounts with es-AR thousands separator (no decimals)', () => {
+    expect(formatTooltipValue(5000)).toBe('$\u00A05.000');
   });
 
   it('formats large amounts with full separator groups', () => {
-    expect(formatTooltipValue(1234567)).toBe('$1.234.567');
+    expect(formatTooltipValue(1234567)).toBe('$\u00A01.234.567');
   });
 
   it('formats zero', () => {
-    expect(formatTooltipValue(0)).toBe('$0');
+    expect(formatTooltipValue(0)).toBe('$\u00A00');
+  });
+
+  it('shows real pesos amounts — a 60.000 guardia renders as $60.000, not $600', () => {
+    expect(formatTooltipValue(60000)).toBe('$\u00A060.000');
   });
 });

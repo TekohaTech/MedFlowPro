@@ -37,7 +37,7 @@ class ActividadBase(BaseModel):
     type: ActivityType = Field(..., description="Tipo de actividad")
     institution: str = Field(..., min_length=1, max_length=200, description="Institución")
     date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Fecha (YYYY-MM-DD)")
-    amount: int = Field(..., ge=0, description="Monto en centavos/pesos")
+    amount: float = Field(..., ge=0, description="Monto en pesos, con hasta 2 decimales")
     status: PaymentStatus = PaymentStatus.PENDIENTE
     notes: Optional[str] = Field(None, max_length=1000, description="Notas adicionales")
 
@@ -51,7 +51,7 @@ class ActividadCreate(ActividadBase):
 
     # Campos específicos de Guardia
     hours: Optional[int] = Field(None, ge=1, le=48, description="Horas de guardia")
-    hourly_rate: Optional[int] = Field(None, ge=0, description="Valor por hora")
+    hourly_rate: Optional[float] = Field(None, ge=0, description="Valor por hora")
     start_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$", description="Hora inicio")
     end_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$", description="Hora fin")
     end_date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$", description="Fecha fin (YYYY-MM-DD)")
@@ -59,7 +59,7 @@ class ActividadCreate(ActividadBase):
     # Campos específicos de Procedimiento
     procedure_name: Optional[str] = Field(None, max_length=200, description="Nombre del procedimiento")
     quantity: Optional[int] = Field(1, ge=1, description="Cantidad")
-    unit_value: Optional[int] = Field(None, ge=0, description="Valor unitario")
+    unit_value: Optional[float] = Field(None, ge=0, description="Valor unitario")
     
     # Campos específicos de Interconsulta
     specialty: Optional[str] = Field(None, max_length=100, description="Especialidad solicitante")
@@ -77,7 +77,7 @@ class ActividadUpdate(BaseModel):
     """Schema para actualizar actividad"""
     institution: Optional[str] = Field(None, min_length=1, max_length=200)
     date: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-    amount: Optional[int] = Field(None, ge=0)
+    amount: Optional[float] = Field(None, ge=0)
     status: Optional[PaymentStatus] = None
     notes: Optional[str] = Field(None, max_length=1000)
     concept_name: Optional[str] = Field(None, max_length=200)
@@ -103,13 +103,13 @@ class ActividadResponse(ActividadBase):
     weekday_hours: Optional[int] = None
     weekend_hours: Optional[int] = None
     hours: Optional[int] = None
-    hourly_rate: Optional[int] = None
+    hourly_rate: Optional[float] = None
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     end_date: Optional[str] = None
     procedure_name: Optional[str] = None
     quantity: Optional[int] = None
-    unit_value: Optional[int] = None
+    unit_value: Optional[float] = None
     specialty: Optional[str] = None
     patient_location: Optional[PatientLocation] = None
     complexity: Optional[bool] = None
@@ -125,12 +125,12 @@ class ActividadResponse(ActividadBase):
 
 class ActividadStats(BaseModel):
     """Estadísticas de actividades"""
-    total_ingresos: int
+    total_ingresos: float
     total_guardias: int
     total_procedimientos: int
     total_interconsultas: int
-    Cobrado: int
-    Pendiente: int
+    Cobrado: float
+    Pendiente: float
     mes_actual: str
     anio_actual: int
 
@@ -138,18 +138,18 @@ class ActividadStats(BaseModel):
 class MonthlyRow(BaseModel):
     """Una fila de la comparativa mensual"""
     month: str
-    total_ingresos: int
+    total_ingresos: float
     total_guardias: int
     total_procedimientos: int
     total_interconsultas: int
     total_extras: int
-    cobrado: int
-    pendiente: int
+    cobrado: float
+    pendiente: float
 
 
 class InstitutionSummary(BaseModel):
     """Resumen por institución"""
     institution: str
-    total: int
+    total: float
     count: int
     promedio: float

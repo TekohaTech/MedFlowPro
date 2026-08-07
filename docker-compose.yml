@@ -70,7 +70,8 @@ services:
     depends_on:
       - backend
     environment:
-      VITE_API_URL: http://localhost:8000
+      # Dev uses relative /api + Vite proxy, so the app also works from LAN/phone.
+      VITE_PROXY_TARGET: http://medflow_api:8000
     networks:
       - medflow_net
 

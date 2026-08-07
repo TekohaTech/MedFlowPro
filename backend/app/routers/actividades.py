@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 from app.config import settings
+from app.data.feriados import es_feriado
 from app.models.actividad import (
     ActividadCreate, ActividadResponse, ActividadUpdate,
     ActividadStats, MonthlyRow, ActivityType, PaymentStatus
@@ -22,27 +23,37 @@ from app.db.mongo import get_database
 def calculate_guardia_amount(
     start_date: datetime,
     hours: int,
-    semana_rate: int | None,
-    finde_rate: int | None,
+    semana_rate: float | None,
+    finde_rate: float | None,
     weekday_hours: int | None = None,
     weekend_hours: int | None = None,
-) -> int:
+    feriado_rate: float | None = None,
+) -> float:
     """Calculate guardia amount based on weekday-start rule or split override.
 
     Default rule: if guardia starts Mon-Fri (weekday() < 5) use semana_rate,
     if Sat-Sun use finde_rate. When weekday_hours/weekend_hours are provided,
-    use the split calculation instead.
+    use the split calculation instead. When the start date is a national
+    holiday and feriado_rate is configured, the holiday rate wins over the
+    weekday/weekend rule (but NOT over an explicit split override).
+    Rates may be floats; the result is rounded to 2 decimals so stored
+    amounts never carry float noise.
     """
     semana_rate = semana_rate or 0
     finde_rate = finde_rate or 0
 
     if weekday_hours is not None and weekend_hours is not None:
         # Override mode: use provided split hours
-        return (weekday_hours * semana_rate) + (weekend_hours * finde_rate)
+        amount = (weekday_hours * semana_rate) + (weekend_hours * finde_rate)
+    elif feriado_rate is not None and es_feriado(start_date):
+        # Holiday rule: feriado_rate wins when configured and date is a holiday
+        amount = hours * feriado_rate
+    else:
+        # Default weekday-start rule
+        rate = semana_rate if start_date.weekday() < 5 else finde_rate
+        amount = hours * rate
 
-    # Default weekday-start rule
-    rate = semana_rate if start_date.weekday() < 5 else finde_rate
-    return hours * rate
+    return round(amount, 2)
 
 router = APIRouter(prefix="/api/actividades", tags=["🏥 Actividades"])
 logger = logging.getLogger(__name__)
@@ -102,19 +113,23 @@ async def crear_actividad(
                 finde_rate=finde_rate,
                 weekday_hours=actividad.weekday_hours,
                 weekend_hours=actividad.weekend_hours,
+                feriado_rate=inst.get("guardia_feriado_rate"),
             )
-        if actividad.amount is None or actividad.amount == 0:
+        # Fallback manual-rate path: only when NO amount was provided at all.
+        # 0 is a VALID stored amount (e.g. a holiday with a configured
+        # feriado_rate of 0) — it must never be recomputed here.
+        if actividad.amount is None:
             if actividad.hourly_rate:
-                actividad.amount = actividad.hours * actividad.hourly_rate
+                actividad.amount = round(actividad.hours * actividad.hourly_rate, 2)
     
     # Calcular monto si es procedimiento
     if actividad.type == ActivityType.PROCEDIMIENTO and actividad.quantity and actividad.unit_value:
-        actividad.amount = actividad.quantity * actividad.unit_value
+        actividad.amount = round(actividad.quantity * actividad.unit_value, 2)
     
     # Aplicar recargo 50% si es extraservicio o alta complejidad
     if actividad.type == ActivityType.INTERCONSULTA:
         if actividad.patient_location == "extraservicio" or actividad.complexity:
-            actividad.amount = int(actividad.amount * 1.5)
+            actividad.amount = round(actividad.amount * 1.5, 2)
     
     doc = {
         "userId": user_id,  # 🔐 CRÍTICO: Aisla datos por médico

@@ -9,7 +9,7 @@ import { DateTimeInputs } from '../DateTimeInputs';
 import { RateEditor } from '../RateEditor';
 import { ExtraActivitiesList } from './ExtraActivitiesList';
 import { useShiftForm } from './useShiftForm';
-import { cn } from '../../lib/utils';
+import { cn, formatMoneyInput } from '../../lib/utils';
 import { Label } from '../ui/Label';
 import { Input } from '../ui/Input';
 
@@ -142,8 +142,8 @@ export function ShiftForm({
               )}
               <Input label="Monto $" type="text" inputMode="numeric" name="amount_display"
                 value={form.amount}
-                onChange={(e) => form.setAmount(e.target.value.replace(/\D/g, ''))}
-                placeholder="ej: 150000" />
+                onChange={(e) => form.setAmount(formatMoneyInput(e.target.value))}
+                placeholder="ej: 150.000" />
 
               {/* Extra mode only needs date, no time */}
               <div className="space-y-2">
@@ -177,7 +177,7 @@ export function ShiftForm({
                   onChange={(e) => form.setHours(e.target.value.replace(/\D/g, ''))}
                   placeholder="ej: 12" />
                 <Input label="$/Hora" type="text" inputMode="numeric" name="hourly_rate" value={form.hourlyRate}
-                  onChange={(e) => form.setHourlyRate(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => form.setHourlyRate(formatMoneyInput(e.target.value))}
                   placeholder="ej: 19000" />
               </div>
 

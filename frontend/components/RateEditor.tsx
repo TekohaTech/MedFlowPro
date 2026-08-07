@@ -1,10 +1,30 @@
 import { useState, useEffect } from 'react';
-import { Clock, Stethoscope, UserCheck, Check, X, Pencil, Building2, Info, RotateCcw } from 'lucide-react';
+import { Clock, Stethoscope, UserCheck, Check, X, Pencil, Building2, Info, RotateCcw, CalendarDays } from 'lucide-react';
 import { Institution } from '../types';
-import { cn } from '../lib/utils';
+import { cn, formatCurrency, parseAmount, formatMoneyInput } from '../lib/utils';
 import { api } from '../services/api';
 
-type RateType = 'guardia_semana_rate' | 'guardia_finde_rate' | 'procedimiento_rate' | 'interconsulta_rate';
+type RateType = 'guardia_semana_rate' | 'guardia_finde_rate' | 'guardia_feriado_rate' | 'procedimiento_rate' | 'interconsulta_rate';
+
+/**
+ * Parses the inline edit input with es-AR rules: '1250,50' → 1250.5,
+ * '8.000' → 8000, '12000' → 12000. '' → null (unset), junk/letters → null.
+ */
+export function parseRateInput(value: string): number | null {
+  const cleaned = value.replace(/[^\d.,]/g, '');
+  if (!/\d/.test(cleaned)) return null;
+  return parseAmount(cleaned);
+}
+
+/**
+ * True when the edit is a no-op: the input parses to the same value as the
+ * current rate, including both empty/unset (undefined counts as unset).
+ * Example: opening the editor on an already-set rate and blurring without
+ * changing anything must NOT hit the API.
+ */
+export function shouldSkipRateSave(numValue: number | null, prevValue: number | null | undefined): boolean {
+  return numValue === (prevValue ?? null);
+}
 
 interface RateEditorProps {
   institution: Institution;
@@ -15,22 +35,32 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
   const HELP_ICON = String.fromCharCode(0x1F4A1);
   const [editingRateType, setEditingRateType] = useState<RateType | null>(null);
   const [tempRateValue, setTempRateValue] = useState('');
-  const [rateSavedFeedback, setRateSavedFeedback] = useState<string | null>(null);
+  const [rateFeedback, setRateFeedback] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [showTooltip, setShowTooltip] = useState(false);
 
   // Dialog recalcular pendientes
   const [pendingDialog, setPendingDialog] = useState<{ fromDate: string; loading: boolean; result: string | null } | null>(null);
 
   useEffect(() => {
-    if (rateSavedFeedback) {
-      const timer = setTimeout(() => setRateSavedFeedback(null), 2000);
+    // Success auto-clears after 2s; errors stay visible until the next edit starts.
+    if (rateFeedback?.kind === 'success') {
+      const timer = setTimeout(() => setRateFeedback(null), 2000);
       return () => clearTimeout(timer);
     }
-  }, [rateSavedFeedback]);
+  }, [rateFeedback]);
 
   const handleSaveRateEdit = async (type: RateType, value: string) => {
-    const numValue = value ? parseInt(value.replace(/\D/g, '')) : null;
+    const numValue = parseRateInput(value);
     const prevValue = institution[type];
+
+    // Nothing changed (same value, or empty input on an unset rate) → just
+    // close, no API call, no error, no feedback.
+    if (shouldSkipRateSave(numValue, prevValue)) {
+      setRateFeedback(null);
+      setEditingRateType(null);
+      return;
+    }
+
     try {
       const updateData: Partial<Institution> = {};
       updateData[type] = numValue;
@@ -39,13 +69,14 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
       const labels: Record<string, string> = {
         guardia_semana_rate: 'Guardia semana',
         guardia_finde_rate: 'Guardia finde',
+        guardia_feriado_rate: 'Guardia feriado',
         procedimiento_rate: 'Proced.',
         interconsulta_rate: 'Interc.',
       };
-      setRateSavedFeedback(`${labels[type]} actualizada ${String.fromCharCode(0x2713)}`);
+      setRateFeedback({ kind: 'success', text: `${labels[type]} actualizada ${String.fromCharCode(0x2713)}` });
 
       // Solo preguntar si cambió tarifa de guardia
-      if (numValue !== prevValue && (type === 'guardia_semana_rate' || type === 'guardia_finde_rate')) {
+      if (numValue !== prevValue && (type === 'guardia_semana_rate' || type === 'guardia_finde_rate' || type === 'guardia_feriado_rate')) {
         setPendingDialog({
           fromDate: new Date().toISOString().split('T')[0],
           loading: false,
@@ -54,6 +85,7 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
       }
     } catch (e) {
       console.error('Error saving rate', e);
+      setRateFeedback({ kind: 'error', text: 'No se pudo guardar la tarifa. Revisá tu conexión e intentá de nuevo.' });
     }
     setEditingRateType(null);
   };
@@ -76,6 +108,7 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
   const RATE_HELP: Record<string, string> = {
     guardia_semana_rate: 'Valor por hora de guardia en día de semana (lun a vie)',
     guardia_finde_rate: 'Valor por hora de guardia en fin de semana (sáb o dom)',
+    guardia_feriado_rate: 'Valor por hora de guardia en feriado nacional',
     procedimiento_rate: 'Valor por procedimiento (ej: RMN, ecografía)',
     interconsulta_rate: 'Valor por interconsulta (ej: evaluación de otra especialidad)',
   };
@@ -91,10 +124,11 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
     <div className="flex items-center gap-1">
       {icon}
       {editingRateType === type ? (
-        <div className="flex items-center gap-1">
-          <span className="text-slate-500">{label}:</span>
+        <div className="flex items-center gap-1 max-w-full">
+          <span className="text-slate-500 shrink-0">{label}:</span>
           <input type="text" inputMode="numeric" value={tempRateValue}
-            onChange={(e) => setTempRateValue(e.target.value)}
+            placeholder="Ingresá valor"
+            onChange={(e) => setTempRateValue(formatMoneyInput(e.target.value))}
             onBlur={(e) => {
               if (e.relatedTarget?.tagName === 'BUTTON') return;
               handleSaveRateEdit(type, tempRateValue);
@@ -103,23 +137,23 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
               if (e.key === 'Enter') handleSaveRateEdit(type, tempRateValue);
               if (e.key === 'Escape') setEditingRateType(null);
             }}
-            className={cn("w-16 bg-white dark:bg-slate-700 border rounded px-1 py-0.5 text-[10px] font-bold text-slate-900 dark:text-white outline-none", borderColor)}
+            className={cn("w-24 sm:w-20 min-w-0 bg-white dark:bg-slate-700 border rounded px-1 py-0.5 text-[10px] font-bold text-slate-900 dark:text-white outline-none", borderColor)}
             autoFocus />
           <button type="button" onClick={() => handleSaveRateEdit(type, tempRateValue)}
-            className="p-0.5 text-green-500 hover:text-green-700"><Check className="w-3 h-3" /></button>
+            className="p-1.5 text-green-500 hover:text-green-700"><Check className="w-3 h-3" /></button>
           <button type="button" onClick={() => setEditingRateType(null)}
-            className="p-0.5 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
+            className="p-1.5 text-slate-400 hover:text-slate-600"><X className="w-3 h-3" /></button>
         </div>
       ) : (
         <span className="flex items-center gap-1 text-slate-500" title={RATE_HELP[type]}>
           {label}:
-          {value ? (
-            <span className="text-slate-900 dark:text-white font-bold">${value.toLocaleString('es-AR')}{showSuffix ? '/h' : ''}</span>
+          {value != null ? (
+            <span className="text-slate-900 dark:text-white font-bold">{formatCurrency(value)}{showSuffix ? '/h' : ''}</span>
           ) : (
             <span className="text-slate-300 italic">—</span>
           )}
-          <button type="button" title="Editar" onClick={() => { setEditingRateType(type); setTempRateValue(value?.toString() || ''); }}
-            className="p-0.5 text-slate-300 hover:text-blue-500 transition-colors">
+          <button type="button" title="Editar" onClick={() => { setRateFeedback(null); setEditingRateType(type); setTempRateValue(value != null ? value.toLocaleString('es-AR') : ''); }}
+            className="p-1.5 text-slate-300 hover:text-blue-500 transition-colors">
             <Pencil className="w-2.5 h-2.5" />
           </button>
         </span>
@@ -132,7 +166,7 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
       <div className="flex items-center gap-1">
         <Building2 className="w-3 h-3 text-slate-400" />
         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tarifas de referencia</span>
-        <span className="text-[7px] text-slate-300 ml-auto">tocá un valor para editar</span>
+        <span className="text-[7px] text-slate-300 ml-auto hidden sm:inline">tocá un valor para editar</span>
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
         <div className="flex items-center gap-1">
@@ -143,7 +177,7 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
               onClick={() => setShowTooltip(!showTooltip)}
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
-              className="p-0.5 text-slate-300 hover:text-blue-500 transition-colors"
+              className="p-1.5 text-slate-300 hover:text-blue-500 transition-colors"
             >
               <Info className="w-2.5 h-2.5" />
             </button>
@@ -156,11 +190,15 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
           </div>
         </div>
         {renderRateRow('Gdia finde', 'guardia_finde_rate', <Clock className="w-3 h-3 text-blue-400" />, 'border-blue-300', institution.guardia_finde_rate ?? institution.guardia_rate)}
+        {renderRateRow('Gdia feriado', 'guardia_feriado_rate', <CalendarDays className="w-3 h-3 text-amber-400" />, 'border-amber-300', institution.guardia_feriado_rate)}
         {renderRateRow('Proced.', 'procedimiento_rate', <Stethoscope className="w-3 h-3 text-purple-400" />, 'border-purple-300', institution.procedimiento_rate)}
         {renderRateRow('Interc.', 'interconsulta_rate', <UserCheck className="w-3 h-3 text-green-400" />, 'border-green-300', institution.interconsulta_rate)}
       </div>
-      {rateSavedFeedback && (
-        <p className="text-[9px] text-green-600 dark:text-green-400 font-bold animate-in fade-in">{rateSavedFeedback}</p>
+      {rateFeedback && (
+        <p className={cn("text-[9px] font-bold animate-in fade-in",
+          rateFeedback.kind === 'error' ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400")}>
+          {rateFeedback.text}
+        </p>
       )}
 
       {/* Dialog: aplicar cambio a guardias pendientes */}

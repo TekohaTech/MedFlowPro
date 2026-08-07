@@ -10,6 +10,14 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 5173,
         host: '0.0.0.0',
+        proxy: {
+          '/api': {
+            // Docker: VITE_PROXY_TARGET=http://medflow_api:8000 (backend container).
+            // Local host dev: falls back to localhost:8000.
+            target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
+            changeOrigin: true,
+          },
+        },
       },
       plugins: [react(), tailwindcss()],
       define: {

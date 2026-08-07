@@ -58,6 +58,7 @@ async def create_institution(
             "guardia_rate": data.guardia_rate,
             "guardia_semana_rate": data.guardia_semana_rate,
             "guardia_finde_rate": data.guardia_finde_rate,
+            "guardia_feriado_rate": data.guardia_feriado_rate,
             "procedimiento_rate": data.procedimiento_rate,
             "interconsulta_rate": data.interconsulta_rate,
             "is_active": True,
@@ -75,6 +76,7 @@ async def create_institution(
         "guardia_rate": data.guardia_rate,
         "guardia_semana_rate": data.guardia_semana_rate,
         "guardia_finde_rate": data.guardia_finde_rate,
+        "guardia_feriado_rate": data.guardia_feriado_rate,
         "procedimiento_rate": data.procedimiento_rate,
         "interconsulta_rate": data.interconsulta_rate,
         "is_active": True,
@@ -99,7 +101,12 @@ async def update_institution(
     if not target:
         raise HTTPException(404, detail="Institución no encontrada")
 
-    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    # exclude_unset keeps explicit nulls so a rate can be cleared back to unset;
+    # a truly empty body (no fields sent) still raises 400.
+    update_data = data.model_dump(exclude_unset=True)
+    # `name` must never be nulled — only rate fields may be cleared.
+    if "name" in update_data and update_data["name"] is None:
+        del update_data["name"]
     if not update_data:
         raise HTTPException(400, detail="No hay campos para actualizar")
 
@@ -126,6 +133,7 @@ async def recalculate_pending_activities(
 
     semana_rate = target.get("guardia_semana_rate") or target.get("guardia_rate")
     finde_rate = target.get("guardia_finde_rate") or target.get("guardia_rate")
+    feriado_rate = target.get("guardia_feriado_rate")
 
     cursor = db.actividades.find({
         "type": "guardia",
@@ -147,6 +155,7 @@ async def recalculate_pending_activities(
             semana_rate, finde_rate,
             weekday_hours=weekday_hours,
             weekend_hours=weekend_hours,
+            feriado_rate=feriado_rate,
         )
 
         await db.actividades.update_one(

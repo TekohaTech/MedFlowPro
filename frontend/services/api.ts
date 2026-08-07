@@ -1,7 +1,11 @@
 import { Institution } from '../types';
 import { PROFILE_STORAGE_KEY } from '../lib/profileCache';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Dev: relative base ('') so the app calls '/api/...' and the Vite dev proxy
+// forwards to the backend — this works from the desktop AND from a phone on
+// the LAN (localhost would resolve to the phone itself). Production keeps the
+// previous behavior: VITE_API_URL if set, else localhost:8000.
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:8000');
 
 interface RequestOptions {
   method?: string;
@@ -265,6 +269,7 @@ class APIService {
       guardia_rate: raw.guardia_rate,
       guardia_semana_rate: raw.guardia_semana_rate,
       guardia_finde_rate: raw.guardia_finde_rate,
+      guardia_feriado_rate: raw.guardia_feriado_rate,
       procedimiento_rate: raw.procedimiento_rate,
       interconsulta_rate: raw.interconsulta_rate,
       is_active: raw.is_active,
@@ -276,7 +281,7 @@ class APIService {
     return raw.map(r => this.normalizeInstitution(r));
   }
 
-  async createInstitution(data: { name: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null }): Promise<Institution> {
+  async createInstitution(data: { name: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; guardia_feriado_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null }): Promise<Institution> {
     const raw = await this.request<any>('/api/institutions/', {
       method: 'POST',
       body: data,
@@ -284,7 +289,7 @@ class APIService {
     return this.normalizeInstitution(raw);
   }
 
-  async updateInstitution(id: string, data: { name?: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null; is_active?: boolean }): Promise<Institution> {
+  async updateInstitution(id: string, data: { name?: string; guardia_rate?: number | null; guardia_semana_rate?: number | null; guardia_finde_rate?: number | null; guardia_feriado_rate?: number | null; procedimiento_rate?: number | null; interconsulta_rate?: number | null; is_active?: boolean }): Promise<Institution> {
     const raw = await this.request<any>(`/api/institutions/${id}`, {
       method: 'PUT',
       body: data,

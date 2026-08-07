@@ -128,6 +128,7 @@ export interface Institution {
   guardia_rate?: number | null;
   guardia_semana_rate?: number | null;
   guardia_finde_rate?: number | null;
+  guardia_feriado_rate?: number | null;
   procedimiento_rate?: number | null;
   interconsulta_rate?: number | null;
   is_active: boolean;

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Institution } from '../types';
 import { api } from '../services/api';
 import { Button } from './ui/Button';
+import { parseAmount, formatMoneyInput } from '../lib/utils';
 
 interface InstitutionEditFormProps {
   institution?: Institution;
@@ -11,13 +12,15 @@ interface InstitutionEditFormProps {
 }
 
 function initForm(inst?: Institution) {
+  const fmt = (v?: number | null) => (v != null ? v.toLocaleString('es-AR') : '');
   return {
     name: inst?.name ?? '',
-    guardiaRate: inst?.guardia_rate?.toString() ?? '',
-    guardiaSemanaRate: inst?.guardia_semana_rate?.toString() ?? '',
-    guardiaFindeRate: inst?.guardia_finde_rate?.toString() ?? '',
-    procedimientoRate: inst?.procedimiento_rate?.toString() ?? '',
-    interconsultaRate: inst?.interconsulta_rate?.toString() ?? '',
+    guardiaRate: fmt(inst?.guardia_rate),
+    guardiaSemanaRate: fmt(inst?.guardia_semana_rate),
+    guardiaFindeRate: fmt(inst?.guardia_finde_rate),
+    guardiaFeriadoRate: fmt(inst?.guardia_feriado_rate),
+    procedimientoRate: fmt(inst?.procedimiento_rate),
+    interconsultaRate: fmt(inst?.interconsulta_rate),
   };
 }
 
@@ -27,24 +30,33 @@ type FormKey = keyof FormFields;
 export function InstitutionEditForm({ institution, activityMode, onSave, onCancel }: InstitutionEditFormProps) {
   const [form, setForm] = useState(initForm(institution));
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const setField = (key: FormKey) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Rate fields are numeric-only; strip non-digits on input so letters never appear.
-    const value = key === 'name' ? e.target.value : e.target.value.replace(/\D/g, '');
+    // Rate fields: format es-AR as you type (thousands dot, decimal comma); letters never appear.
+    const value = key === 'name' ? e.target.value : formatMoneyInput(e.target.value);
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  /** es-AR parse: '1.250,50' → 1250.5; empty string → null (unset). */
+  const parseRateField = (raw: string): number | null => {
+    if (!raw.trim()) return null;
+    return parseAmount(raw);
   };
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
     setSaving(true);
+    setSaveError(null);
     try {
       const payload = {
         name: form.name.trim(),
-        guardia_rate: form.guardiaRate ? parseInt(form.guardiaRate.replace(/\D/g, '')) : null,
-        guardia_semana_rate: form.guardiaSemanaRate ? parseInt(form.guardiaSemanaRate.replace(/\D/g, '')) : null,
-        guardia_finde_rate: form.guardiaFindeRate ? parseInt(form.guardiaFindeRate.replace(/\D/g, '')) : null,
-        procedimiento_rate: form.procedimientoRate ? parseInt(form.procedimientoRate.replace(/\D/g, '')) : null,
-        interconsulta_rate: form.interconsultaRate ? parseInt(form.interconsultaRate.replace(/\D/g, '')) : null,
+        guardia_rate: parseRateField(form.guardiaRate),
+        guardia_semana_rate: parseRateField(form.guardiaSemanaRate),
+        guardia_finde_rate: parseRateField(form.guardiaFindeRate),
+        guardia_feriado_rate: parseRateField(form.guardiaFeriadoRate),
+        procedimiento_rate: parseRateField(form.procedimientoRate),
+        interconsulta_rate: parseRateField(form.interconsultaRate),
       };
       const updated = institution
         ? await api.updateInstitution(institution.id, payload)
@@ -52,6 +64,7 @@ export function InstitutionEditForm({ institution, activityMode, onSave, onCance
       onSave(updated, institution ? '' : updated.name);
     } catch (e) {
       console.error('Error saving institution', e);
+      setSaveError('No se pudo guardar. Revisá tu conexión e intentá de nuevo.');
     } finally {
       setSaving(false);
     }
@@ -82,9 +95,18 @@ export function InstitutionEditForm({ institution, activityMode, onSave, onCance
             <input type="text" inputMode="numeric" value={form.guardiaFindeRate} onChange={setField('guardiaFindeRate')}
               placeholder="Fin de semana (sáb–dom)" title="Valor por hora de guardia en fin de semana (sábado o domingo)"
               className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
-            <input type="text" inputMode="numeric" value={form.guardiaRate} onChange={setField('guardiaRate')}
-              placeholder="Tarifa única (opcional)" title="Si usás una tarifa única sin diferenciar semana/finde. Si ya pusiste Semana y Finde, dejalo vacío."
-              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-400 dark:text-slate-500 mt-1.5" />
+            <input type="text" inputMode="numeric" value={form.guardiaFeriadoRate} onChange={setField('guardiaFeriadoRate')}
+              placeholder="Feriado (opcional)" title="Valor por hora de guardia en feriado nacional"
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
+            <label htmlFor="guardia-rate-unica" className="text-[9px] font-black text-blue-700 dark:text-blue-400 block mt-2 mb-1 uppercase tracking-widest">
+              Tarifa única (opcional)
+            </label>
+            <input id="guardia-rate-unica" type="text" inputMode="numeric" value={form.guardiaRate} onChange={setField('guardiaRate')}
+              placeholder="" title="Si usás una tarifa única sin diferenciar semana/finde. Si ya pusiste Semana y Finde, dejalo vacío."
+              className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
+            <p className="text-[9px] text-slate-500 leading-tight mt-1">
+              Usala solo si no querés diferenciar semana/finde. Dejalo vacío si ya cargaste Semana y Finde.
+            </p>
           </div>
           <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-xl">
             <label className="text-[9px] font-black text-amber-700 dark:text-amber-400 block mb-2 uppercase tracking-widest">
@@ -98,6 +120,10 @@ export function InstitutionEditForm({ institution, activityMode, onSave, onCance
               className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
           </div>
         </div>
+      )}
+
+      {saveError && (
+        <p className="text-[10px] text-red-600 dark:text-red-400 font-bold">{saveError}</p>
       )}
 
       <div className="flex gap-2">

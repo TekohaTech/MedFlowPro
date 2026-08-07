@@ -1,6 +1,6 @@
 import { X, Plus, Clock, Check } from 'lucide-react';
 import { PaymentStatus } from '../../types';
-import { cn } from '../../lib/utils';
+import { cn, parseAmount, sanitizeMoneyInput } from '../../lib/utils';
 
 interface ExtraActivity {
   id: string;
@@ -64,7 +64,7 @@ export function ExtraActivitiesList({ extras, onAdd, onUpdate, onRemove, extraTo
                   <input type="text" value={extra.procedureName || ''} onChange={e => onUpdate(extra.id, { procedureName: e.target.value })}
                     placeholder="Procedimiento" title="Nombre del procedimiento realizado (ej: RMN rodilla, ecografía abdominal)"
                     className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
-                  <input type="text" inputMode="numeric" value={extra.amount || ''} onChange={e => onUpdate(extra.id, { amount: parseInt(e.target.value.replace(/\D/g, '')) || 0 })}
+                  <input type="text" inputMode="numeric" value={extra.amount || ''} onChange={e => onUpdate(extra.id, { amount: parseAmount(sanitizeMoneyInput(e.target.value)) })}
                     placeholder="Monto $" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                 </div>
               ) : (
@@ -72,7 +72,7 @@ export function ExtraActivitiesList({ extras, onAdd, onUpdate, onRemove, extraTo
                   <input type="text" value={extra.specialty || ''} onChange={e => onUpdate(extra.id, { specialty: e.target.value })}
                     placeholder="Especialidad" title="Especialidad que realizó la interconsulta (ej: Cirugía general, Neurología)"
                     className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
-                  <input type="text" inputMode="numeric" value={extra.amount || ''} onChange={e => onUpdate(extra.id, { amount: parseInt(e.target.value.replace(/\D/g, '')) || 0 })}
+                  <input type="text" inputMode="numeric" value={extra.amount || ''} onChange={e => onUpdate(extra.id, { amount: parseAmount(sanitizeMoneyInput(e.target.value)) })}
                     placeholder="Monto $" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                 </div>
               )}

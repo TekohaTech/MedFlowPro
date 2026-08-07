@@ -65,3 +65,28 @@ class TestActividadCreateConceptName:
             concept_name="Aclaración sin cargo",
         )
         assert data.amount == 0
+
+    def test_accepts_decimal_amount(self):
+        """Amounts are peso values with up to 2 decimals (not integer cents)."""
+        data = ActividadCreate(
+            type=ActivityType.GUARDIA,
+            institution="Test Inst",
+            date="2026-06-15",
+            amount=56003.5,
+            hours=7,
+            hourly_rate=8000.5,
+        )
+        assert data.amount == 56003.5
+        assert data.hourly_rate == 8000.5
+
+    def test_accepts_decimal_unit_value(self):
+        """unit_value supports decimals for procedimientos."""
+        data = ActividadCreate(
+            type=ActivityType.PROCEDIMIENTO,
+            institution="Test Inst",
+            date="2026-06-15",
+            amount=1250.5,
+            quantity=1,
+            unit_value=1250.5,
+        )
+        assert data.unit_value == 1250.5

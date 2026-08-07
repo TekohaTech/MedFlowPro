@@ -1,3 +1,5 @@
+import { formatCurrency } from './utils';
+
 export function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return '';
   if (points.length === 1) return `M${points[0].x},${points[0].y}`;
@@ -25,7 +27,8 @@ export function formatY(val: number): string {
   return `$${val}`;
 }
 
-// Tooltip amount for MonthlyChart: es-AR thousands separator, no decimals.
+// Tooltip amount for MonthlyChart: es-AR currency formatting (same style as the
+// rest of the app via formatCurrency). Amounts are pesos, not cents.
 export function formatTooltipValue(value: number): string {
-  return `$${value.toLocaleString('es-AR')}`;
+  return formatCurrency(value);
 }

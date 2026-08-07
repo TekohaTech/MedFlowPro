@@ -3,6 +3,7 @@ import { format, isToday, type Locale } from 'date-fns';
 import { Clock, FileText, Edit3, Trash2, Plus } from 'lucide-react';
 import { Transaction, PaymentStatus, ShiftType } from '../../types';
 import { cn } from '../../lib/utils';
+import { isHolidayDay, holidayName } from '../../lib/feriados';
 import { ConfirmModal } from '../ui/ConfirmModal';
 
 interface GroupedShift {
@@ -116,6 +117,12 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
            <Clock className="w-6 h-6" />
          </div>
       </div>
+
+      {isHolidayDay(selectedDay) && (
+        <div className="self-start max-w-full text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 px-2.5 py-1.5 rounded-lg leading-tight">
+          {holidayName(selectedDay) ?? t.feriadoNacional}
+        </div>
+      )}
 
       {shifts.length > 0 && (
         <div className="flex gap-2 text-[9px] font-black uppercase tracking-wider">

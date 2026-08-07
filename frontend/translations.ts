@@ -134,6 +134,8 @@ salida: "Salida",
     notifSelectUser: "Seleccionar usuario",
     notifMarkRead: "Marcar como leída",
     notifUnread: "no leídas",
+    feriado: "Feriado",
+    feriadoNacional: "Feriado nacional",
   },
   en: {
     inicio: "Home",
@@ -269,6 +271,8 @@ salida: "Salida",
     notifSelectUser: "Select user",
     notifMarkRead: "Mark as read",
     notifUnread: "unread",
+    feriado: "Holiday",
+    feriadoNacional: "National holiday",
   }
 };
 
