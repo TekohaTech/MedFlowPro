@@ -36,6 +36,16 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
     }
   };
 
+  // En móvil la selección es EFÍMERA: solo dura mientras el modal está abierto.
+  // Al cerrar sin guardar, volvemos al día actual para que el calendario no
+  // quede "tildado" en azul con un día sin datos (confunde con el día de hoy).
+  const closeDayModal = () => {
+    setShowDayModal(false);
+    if (window.innerWidth < 1024) {
+      setSelectedDay(new Date());
+    }
+  };
+
   const monthSummary = useMemo(() => {
     const monthStr = format(currentDate, 'yyyy-MM');
     const monthTx = transactions.filter(tx => tx.date.startsWith(monthStr));
@@ -106,14 +116,14 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
       </div>
 
       {showDayModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[110] flex items-end sm:items-center animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[110] flex items-end sm:items-center animate-in fade-in duration-300" onClick={(e) => { if (e.target === e.currentTarget) closeDayModal(); }}>
           <div className="bg-white dark:bg-slate-900 w-full sm:max-w-lg sm:rounded-[3rem] h-[85vh] sm:h-auto sm:max-h-[80vh] rounded-t-[3rem] p-6 lg:p-8 pt-6 flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden pb-safe" style={{ paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}>
-            <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-6" onClick={() => setShowDayModal(false)} />
+            <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-6" onClick={closeDayModal} />
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
                 {format(selectedDay, 'EEEE d', { locale })}
               </h2>
-              <button onClick={() => setShowDayModal(false)} className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
+              <button onClick={closeDayModal} className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
                 <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>
@@ -126,6 +136,7 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
                 locale={locale}
                 onOpenForm={(date, tx) => {
                   setShowDayModal(false);
+                  if (window.innerWidth < 1024) setSelectedDay(new Date());
                   onOpenForm(date, tx);
                 }}
                 onDelete={onDelete}
