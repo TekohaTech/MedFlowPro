@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from app.config import settings
@@ -20,6 +20,54 @@ from app.core.object_id_utils import safe_object_id
 from app.db.mongo import get_database
 
 
+def _medical_day(hour_ts: datetime) -> datetime:
+    """Calendar date of the medical day (08:00 → 08:00) containing the hour.
+
+    Hours between 00:00 and 08:00 belong to the previous day's medical day.
+    """
+    day = hour_ts.date()
+    if hour_ts.hour < 8:
+        day = day - timedelta(days=1)
+    return day
+
+
+def classify_guardia_hours(
+    start: datetime,
+    end: datetime,
+    holidays_as_feriado: bool = True,
+) -> dict[str, int]:
+    """Classify each hour of a guardia by the medical day where it falls.
+
+    Medical day = 08:00 → 08:00 of the next day; hours 00:00-08:00 belong to
+    the previous day's medical day. Every hour is counted as feriado (max
+    priority), finde (Sat/Sun) or semana (Mon-Fri). With holidays_as_feriado
+    False (no feriado rate configured) holiday hours fall back into their
+    underlying weekday/weekend bucket.
+    """
+    weekday_hours = weekend_hours = feriado_hours = 0
+    cursor = start
+    while cursor < end:
+        day = _medical_day(cursor)
+        if es_feriado(day) and holidays_as_feriado:
+            feriado_hours += 1
+        elif day.weekday() >= 5:
+            weekend_hours += 1
+        else:
+            weekday_hours += 1
+        cursor += timedelta(hours=1)
+    return {
+        "weekday_hours": weekday_hours,
+        "weekend_hours": weekend_hours,
+        "feriado_hours": feriado_hours,
+    }
+
+
+def _combine_time(date_part: datetime, time_part: str) -> datetime:
+    """Combine a date with an 'HH:MM' time string into a datetime."""
+    hh, mm = map(int, time_part.split(":"))
+    return date_part.replace(hour=hh, minute=mm, second=0, microsecond=0)
+
+
 def calculate_guardia_amount(
     start_date: datetime,
     hours: int,
@@ -28,19 +76,44 @@ def calculate_guardia_amount(
     weekday_hours: int | None = None,
     weekend_hours: int | None = None,
     feriado_rate: float | None = None,
+    start_time: str | None = None,
+    end_date: str | None = None,
+    end_time: str | None = None,
 ) -> float:
-    """Calculate guardia amount based on weekday-start rule or split override.
+    """Calculate guardia amount by medical-day hour classification.
 
-    Default rule: if guardia starts Mon-Fri (weekday() < 5) use semana_rate,
-    if Sat-Sun use finde_rate. When weekday_hours/weekend_hours are provided,
-    use the split calculation instead. When the start date is a national
-    holiday and feriado_rate is configured, the holiday rate wins over the
-    weekday/weekend rule (but NOT over an explicit split override).
-    Rates may be floats; the result is rounded to 2 decimals so stored
-    amounts never carry float noise.
+    Official rule (applied when the full range is available: start_time +
+    end_date + end_time): each hour is assigned to its medical day (08:00 →
+    08:00 of the next day; hours 00:00-08:00 belong to the previous day's
+    medical day) and classified as feriado (max priority), finde or semana.
+    Amount = weekday_hours × semana_rate + weekend_hours × finde_rate +
+    feriado_hours × feriado_rate, rounded to 2 decimals. The real start hour
+    only determines how many hours fall on each medical day — it never changes
+    the hourly rate.
+
+    Legacy fallback (no full range): explicit weekday_hours/weekend_hours split
+    override wins, then the holiday rule on the start date, then the
+    weekday-start rule. When feriado_rate is not configured, holiday hours fall
+    back to the weekday/weekend rate of their medical day. Rates may be floats;
+    results are rounded to 2 decimals so stored amounts carry no float noise.
     """
     semana_rate = semana_rate or 0
     finde_rate = finde_rate or 0
+
+    if start_time and end_date and end_time:
+        start_dt = _combine_time(start_date, start_time)
+        end_dt = _combine_time(datetime.strptime(end_date, "%Y-%m-%d"), end_time)
+        if end_dt <= start_dt:
+            # Explicit rejection, NOT a silent fallback to the legacy rule:
+            # a declared-but-backwards range is a client/data error.
+            raise ValueError("El fin de la guardia debe ser posterior al inicio")
+        split = classify_guardia_hours(start_dt, end_dt, feriado_rate is not None)
+        amount = (
+            split["weekday_hours"] * semana_rate
+            + split["weekend_hours"] * finde_rate
+            + split["feriado_hours"] * (feriado_rate or 0)
+        )
+        return round(amount, 2)
 
     if weekday_hours is not None and weekend_hours is not None:
         # Override mode: use provided split hours
@@ -114,6 +187,9 @@ async def crear_actividad(
                 weekday_hours=actividad.weekday_hours,
                 weekend_hours=actividad.weekend_hours,
                 feriado_rate=inst.get("guardia_feriado_rate"),
+                start_time=actividad.start_time,
+                end_date=actividad.end_date,
+                end_time=actividad.end_time,
             )
         # Fallback manual-rate path: only when NO amount was provided at all.
         # 0 is a VALID stored amount (e.g. a holiday with a configured

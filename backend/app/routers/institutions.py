@@ -150,13 +150,26 @@ async def recalculate_pending_activities(
         weekday_hours = act.get("weekday_hours")
         weekend_hours = act.get("weekend_hours")
 
-        new_amount = calculate_guardia_amount(
-            act_date, hours,
-            semana_rate, finde_rate,
-            weekday_hours=weekday_hours,
-            weekend_hours=weekend_hours,
-            feriado_rate=feriado_rate,
-        )
+        try:
+            new_amount = calculate_guardia_amount(
+                act_date, hours,
+                semana_rate, finde_rate,
+                weekday_hours=weekday_hours,
+                weekend_hours=weekend_hours,
+                feriado_rate=feriado_rate,
+                start_time=act.get("start_time"),
+                end_date=act.get("end_date"),
+                end_time=act.get("end_time"),
+            )
+        except ValueError as exc:
+            # Corrupt record (declared range with end <= start): skip it
+            # instead of applying the legacy rule silently or crashing the
+            # whole batch. The amount stays untouched.
+            logger.warning(
+                "⚠️ Guardia %s con rango inválido, se omite del recálculo: %s",
+                act.get("_id"), exc,
+            )
+            continue
 
         await db.actividades.update_one(
             {"_id": act["_id"]},

@@ -90,3 +90,81 @@ class TestActividadCreateConceptName:
             unit_value=1250.5,
         )
         assert data.unit_value == 1250.5
+
+
+class TestActividadCreateGuardiaRange:
+    """Guardia range validation: the declared range is the source of truth.
+
+    A full range (date + start_time → end_date + end_time) must be forward
+    (end > start) and at most 48 hours. Backwards or unbounded ranges are
+    rejected at the model layer (422 via Pydantic) — the per-hour classifier
+    makes an unbounded end_date mean unbounded work per request.
+    """
+
+    def _guardia(self, **overrides) -> ActividadCreate:
+        base = dict(
+            type=ActivityType.GUARDIA,
+            institution="Test Inst",
+            date="2026-06-05",
+            amount=0,
+            hours=24,
+            start_time="08:00",
+            end_date="2026-06-06",
+            end_time="08:00",
+        )
+        base.update(overrides)
+        return ActividadCreate(**base)
+
+    def test_valid_full_range_is_accepted(self):
+        """Fri 08:00 → Sat 08:00 (24h, forward) is valid."""
+        data = self._guardia()
+        assert data.end_date == "2026-06-06"
+
+    def test_exactly_48_hours_is_accepted(self):
+        """Exactly 48h is the cap and is still valid."""
+        data = self._guardia(end_date="2026-06-07", end_time="08:00", hours=48)
+        assert data.hours == 48
+
+    def test_backwards_range_is_rejected(self):
+        """end <= start (same-day earlier time) → ValidationError, NOT silent fallback."""
+        with pytest.raises(ValidationError) as exc:
+            self._guardia(start_time="14:00", end_time="08:00", end_date="2026-06-05")
+        assert "posterior al inicio" in str(exc.value)
+
+    def test_same_start_and_end_is_rejected(self):
+        """end == start (zero-length range) → ValidationError."""
+        with pytest.raises(ValidationError) as exc:
+            self._guardia(start_time="08:00", end_time="08:00", end_date="2026-06-05")
+        assert "posterior al inicio" in str(exc.value)
+
+    def test_range_over_48_hours_is_rejected(self):
+        """end_date '2050-01-01' (210k hours) → ValidationError, no DoS."""
+        with pytest.raises(ValidationError) as exc:
+            self._guardia(hours=48, end_date="2050-01-01", end_time="08:00")
+        assert "48 horas" in str(exc.value)
+
+    def test_partial_range_skips_validation(self):
+        """end_date without start_time → no full range declared → legacy path, no error."""
+        data = ActividadCreate(
+            type=ActivityType.GUARDIA,
+            institution="Test Inst",
+            date="2026-06-05",
+            amount=0,
+            hours=12,
+            end_date="2050-01-01",
+        )
+        assert data.end_date == "2050-01-01"
+
+    def test_non_guardia_range_fields_are_not_validated(self):
+        """The range rule applies to guardias only."""
+        data = ActividadCreate(
+            type=ActivityType.EXTRA,
+            institution="Test Inst",
+            date="2026-06-05",
+            amount=1000,
+            concept_name="Aclaración sin cargo",
+            start_time="14:00",
+            end_date="2026-06-05",
+            end_time="08:00",
+        )
+        assert data.concept_name == "Aclaración sin cargo"

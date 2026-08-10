@@ -2,9 +2,9 @@
 Modelos Pydantic para Actividades Médicas
 Actividad: Guardia, Procedimiento, Interconsulta
 """
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 
 
@@ -71,6 +71,28 @@ class ActividadCreate(ActividadBase):
     
     # Guardia subtype
     shift_subtype: Optional[str] = Field(None, pattern=r"^(activa|pasiva)$", description="Tipo de guardia: activa o pasiva")
+
+    @model_validator(mode="after")
+    def _validate_guardia_range(self) -> "ActividadCreate":
+        """Range rule for guardias: when a full range (date + start_time →
+        end_date + end_time) is declared, the range is the source of truth for
+        the amount (the backend computes by medical-day hour classification).
+
+        Reject backwards ranges (end <= start) and ranges longer than 48 hours.
+        The classifier iterates per hour, so an unbounded end_date would mean
+        unbounded work per request (e.g. end_date '2050-01-01' = 210k hours).
+        """
+        if (
+            self.type == ActivityType.GUARDIA
+            and self.start_time and self.end_date and self.end_time
+        ):
+            start_dt = datetime.strptime(f"{self.date} {self.start_time}", "%Y-%m-%d %H:%M")
+            end_dt = datetime.strptime(f"{self.end_date} {self.end_time}", "%Y-%m-%d %H:%M")
+            if end_dt <= start_dt:
+                raise ValueError("El fin de la guardia debe ser posterior al inicio")
+            if end_dt - start_dt > timedelta(hours=48):
+                raise ValueError("La guardia no puede superar las 48 horas")
+        return self
 
 
 class ActividadUpdate(BaseModel):
