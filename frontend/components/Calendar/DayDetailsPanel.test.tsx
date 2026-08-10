@@ -12,8 +12,23 @@ const t = {
   feriadoNacional: 'Feriado nacional',
   hoy: 'Hoy',
   turnos: 'Turnos',
+  registrados: 'registrados',
   editar: 'Editar',
   eliminar: 'Eliminar',
+  cancelar: 'Cancelar',
+  registrar: 'Registrar',
+  cobrado: 'Cobrado',
+  pendiente: 'Pendiente',
+  sinRegistros: 'Sin registros',
+  tocaParaAnadir: 'Tocá para añadir actividad',
+  tipoGuardia: 'Guardia',
+  tipoProced: 'Proced.',
+  tipoExtra: 'Extra',
+  tipoIntercons: 'Intercons.',
+  pagadoBadge: '• Pagado',
+  pendienteBadge: '• Pendiente',
+  eliminarActividad: 'Eliminar actividad',
+  eliminarActividadMsg: '¿Eliminar esta actividad? No se puede deshacer.',
 };
 
 function renderPanel(day: Date): string {

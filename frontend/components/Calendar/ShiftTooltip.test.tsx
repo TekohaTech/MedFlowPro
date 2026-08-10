@@ -2,7 +2,16 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ShiftTooltip, type HoverInfo } from './ShiftTooltip';
 
-const t = { feriado: 'Feriado', feriadoNacional: 'Feriado nacional' };
+const t = {
+  feriado: 'Feriado',
+  feriadoNacional: 'Feriado nacional',
+  tipoGuardia: 'Guardia',
+  tipoProced: 'Proced.',
+  tipoExtra: 'Extra',
+  tipoIntercons: 'Intercons.',
+  pagadoBadge: '• Pagado',
+  pendienteBadge: '• Pendiente',
+};
 
 function hoverInfoFor(day: Date): HoverInfo {
   return { x: 100, y: 100, day, shifts: [] };

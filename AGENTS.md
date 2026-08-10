@@ -31,4 +31,4 @@
 - No duplicated logic → shared utility function.
 - No `confirm()` → custom modal.
 - No inline translations → shared `translations.ts`.
-- All Tailwind classes via `cn()` utility.
+- Use `cn()` for conditional/merged Tailwind classes; static class strings are fine.
