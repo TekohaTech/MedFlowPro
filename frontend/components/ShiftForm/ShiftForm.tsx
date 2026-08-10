@@ -187,37 +187,13 @@ export function ShiftForm({
                 onStartTimeChange={form.setStartTime} onEndTimeChange={form.setEndTime}
               />
 
-              {/* Weekday Override Checkbox for multi-day shifts */}
-              {form.showWeekdayOverride && (
-                <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-                  <label className="flex items-start gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.applyWeekdayRule}
-                      onChange={(e) => form.setApplyWeekdayRule(e.target.checked)}
-                      className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300 leading-tight">
-                      Aplicar regla de semana completa: toda la guardia a tarifa de semana porque arranca en día de semana
-                    </span>
-                  </label>
-
-                  {!form.applyWeekdayRule && (
-                    <div className="grid grid-cols-2 gap-3 pl-6">
-                      <Input label="Horas semana" type="text" inputMode="numeric" value={form.weekdayHours}
-                        onChange={(e) => form.setWeekdayHours(e.target.value.replace(/\D/g, ''))}
-                        placeholder="ej: 8" />
-                      <Input label="Horas finde" type="text" inputMode="numeric" value={form.weekendHours}
-                        onChange={(e) => form.setWeekendHours(e.target.value.replace(/\D/g, ''))}
-                        placeholder="ej: 4" />
-                    </div>
-                  )}
-                </div>
+              {form.previewError && (
+                <p className="text-[10px] font-bold text-red-600 dark:text-red-400">{form.previewError}</p>
               )}
 
               <ExtraActivitiesList extras={form.extras} onAdd={form.addExtra} onUpdate={form.updateExtra} onRemove={form.removeExtra}
                 extraTotal={form.extraTotal} procedimientoRate={form.selectedInstitution?.procedimiento_rate || 0}
-                interconsultaRate={form.selectedInstitution?.interconsulta_rate || 0} />
+                interconsultaRate={form.selectedInstitution?.interconsulta_rate || 0} guardiaDate={form.date} />
             </>
           )}
 
@@ -238,7 +214,7 @@ export function ShiftForm({
               placeholder="Observaciones..." className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl p-2.5 font-medium h-16 resize-none text-slate-900 dark:text-white" />
           </div>
 
-          <button type="submit" disabled={isExtra ? (!form.conceptName || !form.amount || form.isPending) : (!form.institution || !form.amount || form.isPending)}
+          <button type="submit" disabled={isExtra ? (!form.conceptName || !form.amount || form.isPending) : (!form.institution || !form.amount || !!form.previewError || form.isPending)}
             className={cn("w-full lg:w-auto lg:px-10 lg:mx-auto p-3 rounded-xl font-bold text-base shadow-lg flex items-center justify-center gap-2 transition-all",
               (isExtra ? form.conceptName : form.institution) && form.amount && !form.isPending ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98]" : "bg-slate-300 text-slate-500 cursor-not-allowed")}>
             <Check className="w-4 h-4" />

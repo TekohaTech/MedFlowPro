@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Transaction, PaymentStatus, ShiftType, Institution } from '../types';
 import { api } from '../services/api';
 
@@ -69,7 +70,7 @@ export async function saveActivity(activityApi: ActivityApi, newTx: Partial<Tran
   const record = await activityApi.createActividad({
     type: apiType,
     institution: newTx.institution || "Nueva Institución",
-    date: newTx.date || new Date().toISOString().split("T")[0],
+    date: newTx.date || format(new Date(), 'yyyy-MM-dd'),
     amount: newTx.amount || 0,
     hours: apiType === "extra" ? undefined : newTx.duration,
     hourly_rate: newTx.hourlyRate || undefined,

@@ -1,6 +1,8 @@
 import { useState, useEffect, useActionState } from 'react';
+import { format, addDays } from 'date-fns';
 import { ShiftType, Transaction, PaymentStatus, type Institution } from '../../types';
 import { esFeriado } from '../../lib/feriados';
+import { classifyGuardiaHours } from '../../lib/guardiaHours';
 import { parseAmount } from '../../lib/utils';
 
 type ActivityMode = 'guardia' | 'extra';
@@ -13,6 +15,9 @@ interface ExtraActivity {
   amount: number;
   notes?: string;
   status: PaymentStatus;
+  // Fecha/hora en que se realizó. Vacío = usa la fecha de la guardia.
+  date: string;
+  startTime?: string;
   isNew: boolean;
 }
 
@@ -30,6 +35,8 @@ export function toExtraActivity(t: Transaction): ExtraActivity {
     amount: t.amount,
     notes: t.notes,
     status: t.status || PaymentStatus.PENDING,
+    date: t.date,
+    startTime: t.startTime || undefined,
     isNew: false,
   };
 }
@@ -43,6 +50,8 @@ export function newExtraActivity(rate: number): ExtraActivity {
     amount: rate,
     notes: '',
     status: PaymentStatus.PENDING,
+    // Vacío = usa la fecha de la guardia al guardar.
+    date: '',
     isNew: true,
   };
 }
@@ -83,7 +92,7 @@ export function useShiftForm(
       : 'guardia';
   const [activityMode, setActivityMode] = useState<ActivityMode>(initialMode);
   const [amount, setAmount] = useState<string>(editingTransaction ? editingTransaction.amount.toLocaleString('es-AR') : '');
-  const [date, setDate] = useState<string>(editingTransaction ? editingTransaction.date : (initialDate || new Date().toISOString().split('T')[0]));
+  const [date, setDate] = useState<string>(editingTransaction ? editingTransaction.date : (initialDate || format(new Date(), 'yyyy-MM-dd')));
   const [institution, setInstitution] = useState(editingTransaction ? editingTransaction.institution : '');
   const [status, setStatus] = useState<PaymentStatus>(editingTransaction ? editingTransaction.status : PaymentStatus.PENDING);
   // Notes: si es sub-item con nombre separado, remover el prefijo del nombre
@@ -94,17 +103,12 @@ export function useShiftForm(
   const [notes, setNotes] = useState(initialNotes);
   const [startTime, setStartTime] = useState(editingTransaction?.startTime || '08:00');
   const [endTime, setEndTime] = useState(editingTransaction?.endTime || '08:00');
-  const [endDate, setEndDate] = useState(editingTransaction?.endDate || (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
-  })());
+  const [endDate, setEndDate] = useState(editingTransaction?.endDate || format(addDays(new Date(), 1), 'yyyy-MM-dd'));
   const [hours, setHours] = useState<string>(editingTransaction?.duration ? editingTransaction.duration.toString() : '12');
   const [hourlyRate, setHourlyRate] = useState<string>('');
   const [extras, setExtras] = useState<ExtraActivity[]>([]);
   const [shiftSubtype, setShiftSubtype] = useState<'activa' | 'pasiva'>('activa');
   const [conceptName, setConceptName] = useState(editingTransaction?.conceptName || '');
-  const [applyWeekdayRule, setApplyWeekdayRule] = useState(true);
 
   // Para procedimiento/interconsulta: nombre separado de notas
   const isSubItemEdit = editingTransaction?.type === ShiftType.CONSULTATION || editingTransaction?.type === ShiftType.PASSIVE;
@@ -116,8 +120,6 @@ export function useShiftForm(
       ? (editingTransaction!.procedureName || editingTransaction!.specialty || '')
       : ''
   );
-  const [weekdayHours, setWeekdayHours] = useState<string>('');
-  const [weekendHours, setWeekendHours] = useState<string>('');
 
   // Declared BEFORE the effects below: the holiday-rate effect depends on it,
   // and a const referenced in a useEffect deps array must already be initialized.
@@ -142,37 +144,59 @@ export function useShiftForm(
 
   useEffect(() => {
     if (activityMode === 'guardia' && date && parseInt(hours) > 0 && startTime) {
-      const [sh, sm] = startTime.split(':').map(Number);
       const start = new Date(date + 'T' + startTime);
       const end = new Date(start.getTime() + parseInt(hours) * 60 * 60 * 1000);
-      setEndDate(end.toISOString().split('T')[0]);
+      // Local date, NOT UTC: toISOString() would shift a 21:00-23:59 local
+      // end onto the NEXT calendar day (e.g. 22:00 -03:00 = 01:00Z +1d).
+      setEndDate(format(end, 'yyyy-MM-dd'));
       setEndTime(`${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`);
     }
   }, [activityMode, date, hours, startTime]);
 
-  useEffect(() => {
-    if (activityMode === 'guardia') {
-      if (parseInt(hours) > 0 && hourlyRate && hourlyRate.trim() !== '') {
-        const rawRate = parseAmount(hourlyRate);
-        const rate = resolveGuardiaRate(date, selectedInstitution, rawRate);
-        const et = extras.reduce((s, e) => s + e.amount, 0);
-        const total = (parseInt(hours) * rate) + et;
-        if (total > 0) setAmount(total.toLocaleString('es-AR'));
-      }
-    }
-  }, [activityMode, hours, hourlyRate, extras, date, selectedInstitution]);
+  // Range errors shown in the form: backwards range (end <= start) or a range
+  // longer than 48h (the backend caps the range at 48h and rejects both with
+  // 422). The preview must never silently fall back to a stale amount.
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
-  // Calculate amount for extra mode with weekday/weekend split
+  // Amount preview: hours classified by medical day (08:00 → 08:00), matching
+  // the backend rule. Feriado rate wins on holidays; without it, holiday hours
+  // fall back to weekday/weekend. The manual $/Hora is the fallback when the
+  // institution has no rates configured.
   useEffect(() => {
-    if (activityMode === 'guardia' && !applyWeekdayRule && endDate && endDate !== date) {
-      const rawSemanaRate = parseAmount(hourlyRate);
-      const inst = institutions.find(i => i.name.toLowerCase().trim() === institution.toLowerCase().trim());
-      const semanaRate = inst?.guardia_semana_rate ?? inst?.guardia_rate ?? rawSemanaRate;
-      const findeRate = inst?.guardia_finde_rate ?? semanaRate;
-      const total = (parseInt(weekdayHours) || 0) * (semanaRate || 0) + (parseInt(weekendHours) || 0) * (findeRate || 0);
-      if (total > 0) setAmount(total.toLocaleString('es-AR'));
+    if (activityMode !== 'guardia') return;
+    const rawRate = parseAmount(hourlyRate);
+    const hoursNum = parseInt(hours);
+    if (!(hoursNum > 0) || !(rawRate > 0 || selectedInstitution)) return;
+    if (!date || !startTime || !endDate || !endTime) {
+      setPreviewError(null);
+      return;
     }
-  }, [activityMode, applyWeekdayRule, endDate, date, weekdayHours, weekendHours, hourlyRate, institution, institutions]);
+    const start = new Date(date + 'T' + startTime);
+    const end = new Date(endDate + 'T' + endTime);
+    if (end <= start) {
+      setPreviewError('El fin debe ser posterior al inicio');
+      setAmount('');
+      return;
+    }
+    if (end.getTime() - start.getTime() > 48 * 60 * 60 * 1000) {
+      setPreviewError('La guardia no puede superar las 48 horas');
+      setAmount('');
+      return;
+    }
+    setPreviewError(null);
+
+    const semanaRate = selectedInstitution?.guardia_semana_rate ?? selectedInstitution?.guardia_rate ?? rawRate;
+    const findeRate = selectedInstitution?.guardia_finde_rate ?? semanaRate;
+    const feriadoRate = selectedInstitution?.guardia_feriado_rate;
+    const split = classifyGuardiaHours(start, end, feriadoRate != null);
+    const et = extras.reduce((s, e) => s + e.amount, 0);
+    const total =
+      split.weekdayHours * semanaRate +
+      split.weekendHours * findeRate +
+      split.feriadoHours * (feriadoRate ?? 0) +
+      et;
+    if (total > 0) setAmount(total.toLocaleString('es-AR'));
+  }, [activityMode, hours, hourlyRate, date, startTime, endDate, endTime, selectedInstitution, extras]);
 
   useEffect(() => {
     if (initialDate && !editingTransaction) setDate(initialDate);
@@ -259,19 +283,31 @@ export function useShiftForm(
         const fStatus = (formData.get('status') as string) === 'paid' ? PaymentStatus.PAID : PaymentStatus.PENDING;
         const fNotes = formData.get('notes') as string || notes;
 
+        // Source of truth for the amount is the RANGE (the backend computes by
+        // date+start_time → end_date+end_time). `duration` is derived from it
+        // when the range is complete so it can never disagree with the stored
+        // range; the `hours` input only drives the auto-computed end and is
+        // the fallback for range-less legacy records.
+        const fDuration = (fDate && fStartTime && fEndDate && fEndTime)
+          ? Math.max(0, Math.round(
+              (new Date(fEndDate + 'T' + fEndTime).getTime() - new Date(fDate + 'T' + fStartTime).getTime())
+              / (60 * 60 * 1000),
+            ))
+          : (parseInt(hours) || 0);
+
         await onSubmit({
           amount: cleanAmount, date: fDate, endDate: fEndDate,
           startTime: fStartTime, endTime: fEndTime, institution,
           type: ShiftType.ACTIVE, status: fStatus, notes: fNotes,
-          id: editingTransaction?.id, duration: parseInt(hours) || 0, hourlyRate: rawRate, shiftSubtype,
-          weekdayHours: applyWeekdayRule ? undefined : (parseInt(weekdayHours) || 0),
-          weekendHours: applyWeekdayRule ? undefined : (parseInt(weekendHours) || 0),
+          id: editingTransaction?.id, duration: fDuration, hourlyRate: rawRate, shiftSubtype,
         });
 
         for (const extra of extras) {
           if (extra.amount > 0) {
             await onSubmit({
-              amount: extra.amount, date: fDate, institution,
+              amount: extra.amount, date: extra.date || fDate,
+              startTime: extra.startTime || undefined,
+              institution,
               type: extra.type === 'procedimiento' ? ShiftType.CONSULTATION : ShiftType.PASSIVE,
               status: extra.status,
               notes: [extra.type === 'procedimiento' ? extra.procedureName : extra.specialty, extra.notes].filter(Boolean).join(': '),
@@ -298,10 +334,6 @@ export function useShiftForm(
     setActivityMode(mode);
   };
 
-  // Determine if we should show the weekday override checkbox
-  const isMultiDay = endDate && endDate !== date;
-  const showWeekdayOverride = activityMode === 'guardia' && isMultiDay;
-
   return {
     amount, setAmount, date, setDate, institution, status,
     notes, setNotes, startTime, setStartTime, endTime, setEndTime,
@@ -309,14 +341,10 @@ export function useShiftForm(
     extras, addExtra, updateExtra, removeExtra, extraTotal,
     shiftSubtype, setShiftSubtype, selectedInstitution,
     handleSelectInstitution, handleStatusToggle,
-    formState, formAction, isPending,
+    formState, formAction, isPending, previewError,
     // New fields for extra mode
     activityMode, handleModeChange,
     conceptName, setConceptName,
     subItemName, setSubItemName, isSubItemEdit, subItemType,
-    // New fields for weekday override
-    applyWeekdayRule, setApplyWeekdayRule,
-    weekdayHours, setWeekdayHours, weekendHours, setWeekendHours,
-    showWeekdayOverride,
   };
 }

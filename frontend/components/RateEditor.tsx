@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { Clock, Stethoscope, UserCheck, Check, X, Pencil, Building2, Info, RotateCcw, CalendarDays } from 'lucide-react';
 import { Institution } from '../types';
 import { cn, formatCurrency, parseAmount, formatMoneyInput } from '../lib/utils';
@@ -78,7 +79,9 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
       // Solo preguntar si cambió tarifa de guardia
       if (numValue !== prevValue && (type === 'guardia_semana_rate' || type === 'guardia_finde_rate' || type === 'guardia_feriado_rate')) {
         setPendingDialog({
-          fromDate: new Date().toISOString().split('T')[0],
+          // Local date — toISOString() runs UTC and can shift a 21:00-23:59
+          // local "today" onto the next calendar day.
+          fromDate: format(new Date(), 'yyyy-MM-dd'),
           loading: false,
           result: null,
         });
@@ -183,7 +186,7 @@ export function RateEditor({ institution, onInstitutionChange }: RateEditorProps
             </button>
             {showTooltip && (
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2 bg-slate-800 dark:bg-slate-700 text-white text-[8px] leading-tight rounded-lg shadow-lg z-50 pointer-events-none">
-                La tarifa se define según el día de inicio de la guardia, no por cada día trabajado.
+                Se calcula por horas según el día: semana, fin de semana o feriado. El día va de 08:00 a 08:00.
                 <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800 dark:border-t-slate-700" />
               </div>
             )}

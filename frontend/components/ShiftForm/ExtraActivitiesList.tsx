@@ -10,6 +10,9 @@ interface ExtraActivity {
   amount: number;
   notes?: string;
   status: PaymentStatus;
+  // Vacío = usa la fecha de la guardia al guardar.
+  date: string;
+  startTime?: string;
 }
 
 interface ExtraActivitiesListProps {
@@ -20,9 +23,10 @@ interface ExtraActivitiesListProps {
   extraTotal: number;
   procedimientoRate: number;
   interconsultaRate: number;
+  guardiaDate: string;
 }
 
-export function ExtraActivitiesList({ extras, onAdd, onUpdate, onRemove, extraTotal, procedimientoRate, interconsultaRate }: ExtraActivitiesListProps) {
+export function ExtraActivitiesList({ extras, onAdd, onUpdate, onRemove, extraTotal, procedimientoRate, interconsultaRate, guardiaDate }: ExtraActivitiesListProps) {
   return (
     <div className="space-y-3">
       <div>
@@ -76,6 +80,22 @@ export function ExtraActivitiesList({ extras, onAdd, onUpdate, onRemove, extraTo
                     placeholder="Monto $" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
                 </div>
               )}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase">Fecha</span>
+                  <input type="date" value={extra.date || guardiaDate}
+                    onChange={e => onUpdate(extra.id, { date: e.target.value })}
+                    title="Día en que se realizó (por defecto: la fecha de la guardia)"
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase">Hora (opc.)</span>
+                  <input type="time" value={extra.startTime || ''}
+                    onChange={e => onUpdate(extra.id, { startTime: e.target.value })}
+                    title="Hora en que se realizó (opcional)"
+                    className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm font-bold text-slate-900 dark:text-white" />
+                </div>
+              </div>
               <input type="text" value={extra.notes || ''} onChange={e => onUpdate(extra.id, { notes: e.target.value })}
                 placeholder="Notas (opcional)" className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-lg p-2 text-sm text-slate-900 dark:text-white" />
               <div className="flex gap-1">

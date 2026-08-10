@@ -75,7 +75,7 @@ export function Dashboard({
     })
     .reduce((acc, t) => acc + t.amount, 0);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
   const upcomingShifts = transactions
     .filter((tx) => tx.date >= todayStr)
     .sort((a, b) => a.date.localeCompare(b.date));
