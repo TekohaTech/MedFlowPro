@@ -1,18 +1,16 @@
-import { useState } from 'react';
 import { format } from 'date-fns';
+import { Plus, PieChart } from 'lucide-react';
 import { Transaction, PaymentStatus, ShiftType, UserProfile, UserSettings } from '../../types';
-import { Search, Bell, Plus, PieChart } from 'lucide-react';
-import { cn, formatCurrency } from '../../lib/utils';
-import { avatarUrl } from '../../lib/avatars';
 import { translations } from '../../translations';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useDashboardState } from '../../hooks/useDashboardState';
+import { findOverlaps } from '../Calendar/calendarUtils';
+import { DashboardHeader } from './DashboardHeader';
 import { StatsCards } from './StatsCards';
 import { MonthlyChart } from './MonthlyChart';
 import { TransactionHistory } from './TransactionHistory';
-import { NotificationsDropdown } from './NotificationsDropdown';
 import { SearchModal } from './SearchModal';
 import { PendingPaymentsModal } from './PendingPaymentsModal';
-import type { OverlapInfo } from '../Calendar/calendarUtils';
 
 interface DashboardProps {
   transactions: Transaction[];
@@ -35,11 +33,19 @@ export function Dashboard({
 }: DashboardProps) {
   const t = translations[settings.language];
   const { unreadCount } = useNotifications();
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
-  const [pendingOpen, setPendingOpen] = useState(false);
+  const {
+    searchOpen,
+    setSearchOpen,
+    searchQuery,
+    setSearchQuery,
+    year,
+    setYear,
+    showNotifDropdown,
+    setShowNotifDropdown,
+    pendingOpen,
+    setPendingOpen,
+    closeSearch,
+  } = useDashboardState();
 
   const pendingTransactions = transactions.filter(t => t.status === PaymentStatus.PENDING);
 
@@ -81,27 +87,6 @@ export function Dashboard({
     .sort((a, b) => a.date.localeCompare(b.date));
   const nextShift = upcomingShifts[0] ?? null;
 
-  const findOverlaps = (txList: Transaction[]): OverlapInfo[] => {
-    const results: OverlapInfo[] = [];
-    for (let i = 0; i < txList.length; i++) {
-      for (let j = i + 1; j < txList.length; j++) {
-        const a = txList[i], b = txList[j];
-        // skip overlap check when we can't determine end time for either
-        if (!a.endTime && !a.endDate) continue;
-        if (!b.endTime && !b.endDate) continue;
-        const aStart = new Date(`${a.date}T${a.startTime || '00:00'}`);
-        const aEnd = new Date(`${a.endDate || a.date}T${a.endTime || '23:59'}`);
-        const bStart = new Date(`${b.date}T${b.startTime || '00:00'}`);
-        const bEnd = new Date(`${b.endDate || b.date}T${b.endTime || '23:59'}`);
-        if (aStart <= bEnd && bStart <= aEnd) {
-          const dateLabel = format(aStart > bStart ? aStart : bStart, 'dd/MM');
-          results.push({ a, b, dateLabel });
-        }
-      }
-    }
-    return results;
-  };
-
   const upcomingOverlaps = findOverlaps(upcomingShifts.slice(0, 10));
   const nextOverlap = upcomingOverlaps[0] ?? null;
 
@@ -118,55 +103,26 @@ export function Dashboard({
   const monthlyData = getMonthlyPerformance(year);
   const maxVal = Math.max(...monthlyData.map(d => d.value), 1000);
 
-
   const filteredTransactions = searchQuery
     ? transactions.filter(tx =>
         tx.institution.toLowerCase().includes(searchQuery.toLowerCase()) ||
         tx.date.includes(searchQuery)
-      )      .slice(0, 10)
+      ).slice(0, 10)
     : transactions.slice(0, 20);
 
   return (
     <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 lg:space-y-8 animate-in fade-in duration-500 pb-32">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-40 transition-opacity" />
-            <img src={avatarUrl(userProfile.avatar)}
-              className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl border-2 border-white dark:border-slate-700 shadow-xl relative z-10 bg-slate-50 dark:bg-slate-800 object-cover" />
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-4 border-white dark:border-slate-900 rounded-full z-20" />
-          </div>
-          <div>
-            <h1 className={cn("text-xl lg:text-2xl font-black leading-tight tracking-tight", settings.darkMode ? "text-white" : "text-slate-900")}>
-              {t.hola}, {userProfile.name}
-            </h1>
-            <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">{userProfile.specialty}</p>
-          </div>
-        </div>
-        <div className="flex gap-2 lg:gap-3">
-          <button onClick={() => setSearchOpen(true)}
-            className="w-11 h-11 lg:w-12 lg:h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm group">
-            <Search className="w-4 h-4 lg:w-5 lg:h-5" />
-          </button>
-          <div className="relative">
-            <button onClick={() => setShowNotifDropdown(prev => !prev)}
-              className="w-11 h-11 lg:w-12 lg:h-12 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-100 dark:hover:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all shadow-sm relative group">
-              <Bell className="w-4 h-4 lg:w-5 lg:h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 lg:-top-2 lg:-right-2 min-w-[20px] h-5 rounded-full bg-red-500 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-bold text-white px-1 leading-none shadow-lg">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
-            </button>
-            {showNotifDropdown && (
-              <NotificationsDropdown
-                language={settings.language}
-                onClose={() => setShowNotifDropdown(false)}
-              />
-            )}
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        userProfile={userProfile}
+        darkMode={settings.darkMode}
+        greeting={`${t.hola}, ${userProfile.name}`}
+        unreadCount={unreadCount}
+        language={settings.language}
+        showNotifDropdown={showNotifDropdown}
+        onOpenSearch={() => setSearchOpen(true)}
+        onToggleNotifications={() => setShowNotifDropdown(prev => !prev)}
+        onCloseNotifications={() => setShowNotifDropdown(false)}
+      />
 
       <StatsCards
         currentMonthTotal={currentMonthTotal}
@@ -183,6 +139,7 @@ export function Dashboard({
           year={year}
           currentMonth={currentMonth}
           maxVal={maxVal}
+          language={settings.language}
           onYearChange={setYear}
         />
 
@@ -222,10 +179,10 @@ export function Dashboard({
         open={searchOpen}
         searchQuery={searchQuery}
         results={filteredTransactions}
-        placeholder={settings.language === 'es' ? 'Buscar por institución o fecha...' : 'Search by institution or date...'}
-        emptyLabel={settings.language === 'es' ? 'Sin resultados' : 'No results'}
+        placeholder={t.buscarActividad}
+        emptyLabel={t.sinResultados}
         onSearchChange={setSearchQuery}
-        onClose={() => { setSearchOpen(false); setSearchQuery(''); }}
+        onClose={closeSearch}
       />
 
       {pendingOpen && (

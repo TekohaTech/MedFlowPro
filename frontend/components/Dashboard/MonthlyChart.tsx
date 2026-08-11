@@ -1,21 +1,18 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { cn } from '../../lib/utils';
 import { smoothPath, formatY, formatTooltipValue } from '../../lib/chartUtils';
+import { translations, Language } from '../../translations';
+import { ChartTooltip, type TooltipState } from './ChartTooltip';
+import { MonthlyChartHeader } from './MonthlyChartHeader';
 
 interface MonthlyChartProps {
   monthlyData: { label: string; value: number }[];
   year: number;
   currentMonth: number;
   maxVal: number;
+  language: Language;
   onYearChange: (year: number) => void;
-}
-
-interface TooltipState {
-  x: number;
-  label: string;
-  value: string;
 }
 
 export function MonthlyChart({
@@ -23,9 +20,11 @@ export function MonthlyChart({
   year,
   currentMonth,
   maxVal,
+  language,
   onYearChange,
 }: MonthlyChartProps) {
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const t = translations[language];
 
   const isCurrentYear = year === new Date().getFullYear();
 
@@ -53,35 +52,12 @@ export function MonthlyChart({
 
   return (
     <DashboardCard>
-      {/* ── header ── */}
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h2 className="text-lg lg:text-xl font-black tracking-tight text-slate-900 dark:text-white">
-            Rendimiento
-          </h2>
-              <p className="text-[9px] lg:text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-            Año {year}
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => onYearChange(year - 1)}
-            className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center transition-all"
-          >
-            <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-          </button>
-          <span className="text-sm font-black text-slate-900 dark:text-white min-w-[44px] text-center">
-            {year}
-          </span>
-          <button
-            onClick={() => onYearChange(year + 1)}
-            disabled={year >= new Date().getFullYear()}
-            className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-          </button>
-        </div>
-      </div>
+      <MonthlyChartHeader
+        title={t.rendimiento}
+        subtitle={t.anio.replace('{year}', String(year))}
+        year={year}
+        onYearChange={onYearChange}
+      />
 
       {/* ── chart ── */}
       <div className="relative select-none" onPointerDown={() => setTooltip(null)}>
@@ -188,7 +164,7 @@ export function MonthlyChart({
         <ChartTooltip tooltip={tooltip} viewBoxWidth={w} />
 
         {/* month labels */}
-        <div className="flex justify-between px-0 mt-1" style={{ paddingLeft: `${(pad.left / w) * 100}%`, paddingRight: `${(pad.right / w) * 100}%` }}>
+        <div className="grid grid-cols-12 mt-1" style={{ paddingLeft: `${(pad.left / w) * 100}%`, paddingRight: `${(pad.right / w) * 100}%` }}>
           {monthlyData.map((d, i) => (
             <span
               key={i}
@@ -199,29 +175,11 @@ export function MonthlyChart({
                       : 'text-slate-500 dark:text-slate-400',
               )}
             >
-              <span className="lg:hidden">{d.label.charAt(0)}</span>
-              <span className="hidden lg:inline">{d.label}</span>
+              {d.label.charAt(0)}
             </span>
           ))}
         </div>
       </div>
     </DashboardCard>
-  );
-}
-
-function ChartTooltip({ tooltip, viewBoxWidth }: { tooltip: TooltipState | null; viewBoxWidth: number }) {
-  if (!tooltip) return null;
-  return (
-    <div
-      className="absolute -translate-x-1/2 pointer-events-none z-20 transition-all duration-150"
-      style={{
-        left: `${(tooltip.x / viewBoxWidth) * 100}%`,
-        top: '-8px',
-      }}
-    >
-      <div className="bg-slate-900 dark:bg-slate-700 text-white text-[10px] lg:text-xs font-bold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-xl">
-        {tooltip.label}: {tooltip.value}
-      </div>
-    </div>
   );
 }
