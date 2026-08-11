@@ -148,9 +148,9 @@ class ActividadResponse(ActividadBase):
 class ActividadStats(BaseModel):
     """Estadísticas de actividades"""
     total_ingresos: float
-    total_guardias: int
-    total_procedimientos: int
-    total_interconsultas: int
+    total_guardias: float
+    total_procedimientos: float
+    total_interconsultas: float
     Cobrado: float
     Pendiente: float
     mes_actual: str
@@ -161,10 +161,10 @@ class MonthlyRow(BaseModel):
     """Una fila de la comparativa mensual"""
     month: str
     total_ingresos: float
-    total_guardias: int
-    total_procedimientos: int
-    total_interconsultas: int
-    total_extras: int
+    total_guardias: float
+    total_procedimientos: float
+    total_interconsultas: float
+    total_extras: float
     cobrado: float
     pendiente: float
 
