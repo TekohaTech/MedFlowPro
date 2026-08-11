@@ -88,7 +88,7 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
           ));
         })}
 
-        {shifts.length === 0 && <EmptyState t={t} />}
+        {shifts.length === 0 && <EmptyState t={t} onAdd={() => onOpenForm(format(selectedDay, 'yyyy-MM-dd'))} />}
 
         <button
           onClick={() => onOpenForm(format(selectedDay, 'yyyy-MM-dd'))}
