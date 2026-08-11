@@ -50,6 +50,9 @@ export function MonthlyChart({
   const linePath = smoothPath(points);
   const areaPath = `${linePath} L${points[points.length - 1].x},${pad.top + chartH} L${points[0].x},${pad.top + chartH} Z`;
 
+  const showTooltip = (p: (typeof points)[number]) =>
+    setTooltip({ x: p.x, label: p.label, value: formatTooltipValue(p.value) });
+
   return (
     <DashboardCard>
       <MonthlyChartHeader
@@ -132,13 +135,11 @@ export function MonthlyChart({
                 width={44}
                 height={chartH}
                 fill="transparent"
-                onMouseEnter={() =>
-                  setTooltip({ x: p.x, label: p.label, value: formatTooltipValue(p.value) })
-                }
+                onMouseEnter={() => showTooltip(p)}
                 onMouseLeave={() => setTooltip(null)}
                 onPointerDown={(e) => {
                   e.stopPropagation();
-                  setTooltip({ x: p.x, label: p.label, value: formatTooltipValue(p.value) });
+                  showTooltip(p);
                 }}
                 className="cursor-pointer"
               />
@@ -168,11 +169,17 @@ export function MonthlyChart({
           {monthlyData.map((d, i) => (
             <span
               key={i}
+              onMouseEnter={() => showTooltip(points[i])}
+              onMouseLeave={() => setTooltip(null)}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                showTooltip(points[i]);
+              }}
               className={cn(
-                'text-[8px] lg:text-[10px] font-bold uppercase tracking-widest text-center',
-                  i === currentMonth && isCurrentYear
-                      ? 'text-blue-600 dark:text-blue-400'
-                      : 'text-slate-500 dark:text-slate-400',
+                'text-[8px] lg:text-[10px] font-bold uppercase tracking-widest text-center cursor-pointer',
+                i === currentMonth && isCurrentYear
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-slate-500 dark:text-slate-400',
               )}
             >
               {d.label.charAt(0)}
