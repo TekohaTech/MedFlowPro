@@ -1,9 +1,10 @@
-import { useState, useEffect, useActionState } from 'react';
+import { useState, useEffect, useRef, useActionState } from 'react';
 import { format, addDays } from 'date-fns';
 import { ShiftType, Transaction, PaymentStatus, type Institution } from '../../types';
 import { esFeriado } from '../../lib/feriados';
 import { classifyGuardiaHours } from '../../lib/guardiaHours';
 import { parseAmount } from '../../lib/utils';
+import { translations, type Language } from '../../translations';
 
 type ActivityMode = 'guardia' | 'extra';
 
@@ -62,8 +63,9 @@ export function getExtraId(extra: { id: string; isNew: boolean }): string | unde
   return extra.isNew ? undefined : extra.id;
 }
 
-// Holiday rule: on a national holiday, the institution's feriado rate wins
-// over the manual/weekday rate. Falls back to the manual rate otherwise.
+// Rate rule for the $/Hora prefill: a national holiday uses the institution's
+// feriado rate, a Saturday/Sunday uses the weekend rate, otherwise the manual
+// fallback (weekday) rate wins.
 export function resolveGuardiaRate(
   date: string,
   inst: Institution | undefined,
@@ -71,6 +73,12 @@ export function resolveGuardiaRate(
 ): number {
   if (esFeriado(date) && inst?.guardia_feriado_rate != null) {
     return inst.guardia_feriado_rate;
+  }
+  if (inst?.guardia_finde_rate != null) {
+    const day = new Date(date + 'T12:00:00').getDay();
+    if (day === 0 || day === 6) {
+      return inst.guardia_finde_rate;
+    }
   }
   return manualRate;
 }
@@ -82,8 +90,9 @@ export function useShiftForm(
   initialDate: string | undefined,
   institutions: Institution[],
   onClose: () => void,
-  _language: string,
+  language: Language,
 ) {
+  const t = translations[language];
   const initialMode: ActivityMode =
     editingTransaction?.type === ShiftType.EXTRA ||
     editingTransaction?.type === ShiftType.CONSULTATION ||
@@ -127,10 +136,19 @@ export function useShiftForm(
     i.name.toLowerCase().trim() === institution.toLowerCase().trim() && i.is_active
   );
 
+  // Always-fresh snapshot of transactions for the load-extras effect below.
+  // Kept in a ref (not a dependency) so the load-extras effect only re-runs
+  // when editingTransaction changes; depending on array identity would loop
+  // setExtras([]) whenever the parent passes a new `[]`.
+  const transactionsRef = useRef(transactions);
+  useEffect(() => {
+    transactionsRef.current = transactions;
+  }, [transactions]);
+
   useEffect(() => {
     // Solo cargar sub-actividades cuando EDITAMOS una GUARDIA (ACTIVE)
-    if (editingTransaction && editingTransaction.type === ShiftType.ACTIVE && transactions) {
-      const sameDayExtras = transactions.filter(t =>
+    if (editingTransaction && editingTransaction.type === ShiftType.ACTIVE && transactionsRef.current) {
+      const sameDayExtras = transactionsRef.current.filter(t =>
         t.date === editingTransaction.date &&
         t.institution === editingTransaction.institution &&
         t.id !== editingTransaction.id &&
@@ -174,12 +192,12 @@ export function useShiftForm(
     const start = new Date(date + 'T' + startTime);
     const end = new Date(endDate + 'T' + endTime);
     if (end <= start) {
-      setPreviewError('El fin debe ser posterior al inicio');
+      setPreviewError(t.errorRangoInvertido);
       setAmount('');
       return;
     }
     if (end.getTime() - start.getTime() > 48 * 60 * 60 * 1000) {
-      setPreviewError('La guardia no puede superar las 48 horas');
+      setPreviewError(t.errorMax48Horas);
       setAmount('');
       return;
     }
@@ -202,18 +220,38 @@ export function useShiftForm(
     if (initialDate && !editingTransaction) setDate(initialDate);
   }, [initialDate, editingTransaction]);
 
+  // Last auto-filled $/Hora value. The date-change effect only re-prefills
+  // when the field still holds this value — a hand-edited rate differs and is
+  // never overwritten.
+  const lastAutoRate = useRef<string | null>(null);
+
+  const prefillRate = (rate: number) => {
+    // es-AR format exactly like RateEditor ('1.250,5'): a raw '1250.5' would
+    // be misread as thousands-dot by formatMoneyInput on the next keystroke
+    // ('1250.5' + '0' → '125.050' → 125050 pesos).
+    const formatted = rate.toLocaleString('es-AR');
+    lastAutoRate.current = formatted;
+    setHourlyRate(formatted);
+  };
+
   const handleSelectInstitution = (name: string, institution?: Institution) => {
     setInstitution(name);
     // Si viene la institución completa (recién creada), usarla directo para cargar el rate
     const inst = institution ?? institutions.find(i => i.name.toLowerCase().trim() === name.toLowerCase().trim());
     if (inst) {
       const rate = resolveGuardiaRate(date, inst, inst.guardia_semana_rate ?? inst.guardia_rate ?? 0);
-      // es-AR format exactly like RateEditor ('1.250,5'): a raw '1250.5' would
-      // be misread as thousands-dot by formatMoneyInput on the next keystroke
-      // ('1250.5' + '0' → '125.050' → 125050 pesos).
-      if (rate !== null && rate !== undefined) setHourlyRate(rate.toLocaleString('es-AR'));
+      if (rate !== null && rate !== undefined) prefillRate(rate);
     }
   };
+
+  // Re-prefill the rate when the date moves to/from a weekend/holiday, but only
+  // while the field still holds the auto-filled value.
+  useEffect(() => {
+    if (!selectedInstitution || !date) return;
+    if (hourlyRate !== lastAutoRate.current) return;
+    const rate = resolveGuardiaRate(date, selectedInstitution, selectedInstitution.guardia_semana_rate ?? selectedInstitution.guardia_rate ?? 0);
+    if (rate !== null && rate !== undefined) prefillRate(rate);
+  }, [date, selectedInstitution, hourlyRate]);
 
   const addExtra = () => {
     setExtras([...extras, newExtraActivity(selectedInstitution?.procedimiento_rate || 0)]);
@@ -234,8 +272,8 @@ export function useShiftForm(
       const rawAmount = formData.get('amount_display') as string || amount;
       // Preserve 2 decimals from es-AR formatted input: '$1.250,50' → 1250.5
       const cleanAmount = parseAmount(rawAmount);
-      if (cleanAmount <= 0) return { error: 'Completá todos los campos obligatorios' };
-      if (activityMode !== 'extra' && !institution) return { error: 'Completá todos los campos obligatorios' };
+      if (cleanAmount <= 0) return { error: t.errorCamposObligatorios };
+      if (activityMode !== 'extra' && !institution) return { error: t.errorCamposObligatorios };
 
       try {
         if (activityMode === 'extra') {
@@ -249,7 +287,7 @@ export function useShiftForm(
           if (saveType === ShiftType.EXTRA) {
             const fConceptName = formData.get('concept_name') as string || conceptName;
             if (!fConceptName || !fConceptName.trim()) {
-              return { error: 'El nombre del concepto es obligatorio para actividades extra' };
+              return { error: t.errorConceptoObligatorio };
             }
             // Si no hay institución, usar el concepto como institución
             const effectiveInstitution = institution || fConceptName.trim();
@@ -320,7 +358,7 @@ export function useShiftForm(
         onClose();
         return {};
       } catch (e) {
-        return { error: e instanceof Error ? e.message : 'Error al guardar los datos' };
+        return { error: e instanceof Error ? e.message : t.errorGuardarDatos };
       }
     },
     { error: undefined },

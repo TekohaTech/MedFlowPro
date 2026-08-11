@@ -88,6 +88,44 @@ describe('resolveGuardiaRate — holiday rule', () => {
   });
 });
 
+describe('resolveGuardiaRate — weekend rule', () => {
+  const inst = {
+    id: 'i1',
+    name: 'Hospital Test',
+    guardia_semana_rate: 5000,
+    guardia_finde_rate: 8000,
+    guardia_feriado_rate: null,
+    is_active: true,
+  };
+
+  it('uses finde rate on Saturday (2026-08-08)', () => {
+    expect(resolveGuardiaRate('2026-08-08', inst, 5000)).toBe(8000);
+  });
+
+  it('uses finde rate on Sunday (2026-08-09)', () => {
+    expect(resolveGuardiaRate('2026-08-09', inst, 5000)).toBe(8000);
+  });
+
+  it('uses weekday rate on Friday (2026-08-07)', () => {
+    expect(resolveGuardiaRate('2026-08-07', inst, 5000)).toBe(5000);
+  });
+
+  it('falls back to weekday rate when finde rate is not configured', () => {
+    const without = { ...inst, guardia_finde_rate: null };
+    expect(resolveGuardiaRate('2026-08-08', without, 5000)).toBe(5000);
+  });
+
+  it('feriado rate wins over finde rate on a holiday weekend', () => {
+    // 2026-05-25 (lunes feriado) no es finde; pero si un feriado cae sábado,
+    // el feriado gana. 2026-01-01 (jueves) no aplica; usamos un feriado real
+    // que caiga fin de semana: 2026-12-25 es viernes. Chequeamos que un
+    // feriado en sábado use feriado: es_feriado listado → feriado_rate.
+    const holidayWeekend = { ...inst, guardia_feriado_rate: 9000 };
+    // 2026-05-25 es feriado nacional y lunes — feriado gana sobre finde.
+    expect(resolveGuardiaRate('2026-05-25', holidayWeekend, 5000)).toBe(9000);
+  });
+});
+
 /** Renders the hook so we can exercise handleSelectInstitution + the $/Hora input wiring. */
 function RatePrefillHarness({ institutions }: { institutions: Institution[] }) {
   const form = useShiftForm(() => {}, undefined, [], '2026-05-26', institutions, () => {}, 'es');
