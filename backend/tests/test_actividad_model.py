@@ -96,9 +96,11 @@ class TestActividadCreateGuardiaRange:
     """Guardia range validation: the declared range is the source of truth.
 
     A full range (date + start_time → end_date + end_time) must be forward
-    (end > start) and at most 48 hours. Backwards or unbounded ranges are
-    rejected at the model layer (422 via Pydantic) — the per-hour classifier
-    makes an unbounded end_date mean unbounded work per request.
+    (end > start). There is NO artificial 48h cap — doctors legitimately work
+    72h+ guardias. The only upper bound is a 720h (30 days) anti-DoS guard for
+    the per-hour classifier: an unbounded end_date would mean unbounded work
+    per request (e.g. end_date '2050-01-01' = 210k hours). Backwards ranges are
+    rejected at the model layer (422 via Pydantic).
     """
 
     def _guardia(self, **overrides) -> ActividadCreate:
@@ -120,10 +122,20 @@ class TestActividadCreateGuardiaRange:
         data = self._guardia()
         assert data.end_date == "2026-06-06"
 
-    def test_exactly_48_hours_is_accepted(self):
-        """Exactly 48h is the cap and is still valid."""
-        data = self._guardia(end_date="2026-06-07", end_time="08:00", hours=48)
-        assert data.hours == 48
+    def test_72_hour_guardia_is_accepted(self):
+        """72h (Fri 08:00 → Mon 08:00) is a legitimate guardia, NOT capped."""
+        data = self._guardia(end_date="2026-06-08", end_time="08:00", hours=72)
+        assert data.hours == 72
+
+    def test_96_hour_guardia_is_accepted(self):
+        """96h (Fri 08:00 → Tue 08:00) is a legitimate guardia, NOT capped."""
+        data = self._guardia(end_date="2026-06-09", end_time="08:00", hours=96)
+        assert data.hours == 96
+
+    def test_exactly_720_hours_is_accepted(self):
+        """Exactly 720h (30 days) is the anti-DoS bound and is still valid."""
+        data = self._guardia(end_date="2026-07-05", end_time="08:00", hours=720)
+        assert data.hours == 720
 
     def test_backwards_range_is_rejected(self):
         """end <= start (same-day earlier time) → ValidationError, NOT silent fallback."""
@@ -137,11 +149,22 @@ class TestActividadCreateGuardiaRange:
             self._guardia(start_time="08:00", end_time="08:00", end_date="2026-06-05")
         assert "posterior al inicio" in str(exc.value)
 
-    def test_range_over_48_hours_is_rejected(self):
+    def test_range_over_720_hours_is_rejected(self):
+        """Range of 721h (> 30 days) → ValidationError: anti-DoS guard, NOT a cap.
+
+        hours stays in-bounds so the range validator fires: the 720h bound
+        protects the per-hour classifier from unbounded work, it is not a
+        business limit.
+        """
+        with pytest.raises(ValidationError) as exc:
+            self._guardia(hours=48, end_date="2026-07-05", end_time="09:00")
+        assert "720 horas" in str(exc.value)
+
+    def test_huge_unbounded_range_is_rejected(self):
         """end_date '2050-01-01' (210k hours) → ValidationError, no DoS."""
         with pytest.raises(ValidationError) as exc:
             self._guardia(hours=48, end_date="2050-01-01", end_time="08:00")
-        assert "48 horas" in str(exc.value)
+        assert "720 horas" in str(exc.value)
 
     def test_partial_range_skips_validation(self):
         """end_date without start_time → no full range declared → legacy path, no error."""

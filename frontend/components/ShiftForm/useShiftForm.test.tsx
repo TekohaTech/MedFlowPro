@@ -326,7 +326,7 @@ describe('useShiftForm — medical-day amount preview (08:00 → 08:00)', () => 
     expect(amount.textContent).toBe('');
   });
 
-  it('W3: range over 48 hours shows an error and clears the preview', async () => {
+  it('W3 replaced: 96h range computes a preview amount (no 48h cap — doctors work 72h+ guardias)', async () => {
     const institutions: Institution[] = [{
       id: 'i1',
       name: 'Hospital Test',
@@ -342,14 +342,40 @@ describe('useShiftForm — medical-day amount preview (08:00 → 08:00)', () => 
 
     const selectBtn = container.querySelector('button') as HTMLButtonElement;
     act(() => { selectBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    // Aug 05 08:00 → Aug 09 08:00 = 96h > 48h cap.
-    act(() => { setInputValue(container.querySelector('[data-testid="endDate"]') as HTMLInputElement, '2026-08-09'); });
-    act(() => { setInputValue(container.querySelector('[data-testid="endTime"]') as HTMLInputElement, '08:00'); });
+    // Aug 05 08:00 → Aug 09 08:00 = 96h: 72 weekday (Wed/Thu/Fri med days) +
+    // 24 weekend (Sat med day). No feriado rate → weekday/weekend buckets only.
+    act(() => { setInputValue(container.querySelector('[data-testid="hours"]') as HTMLInputElement, '96'); });
 
     const error = container.querySelector('[data-testid="previewError"]') as HTMLElement;
     const amount = container.querySelector('[data-testid="amount"]') as HTMLElement;
-    expect(error.textContent).toBe('La guardia no puede superar las 48 horas');
-    expect(amount.textContent).toBe('');
+    expect(error.textContent).toBe('');
+    // 72 × 5000 + 24 × 8000 = 552000
+    expect(amount.textContent).toBe('552.000');
+  });
+
+  it('long guardia with a holiday inside uses feriado hours × feriado rate: 72h Wed → Sat (Thu 2026-07-09 holiday) → 456.000', async () => {
+    const institutions: Institution[] = [{
+      id: 'i1',
+      name: 'Hospital Test',
+      guardia_semana_rate: 5000,
+      guardia_finde_rate: 8000,
+      guardia_feriado_rate: 9000,
+      is_active: true,
+    }];
+
+    await act(async () => {
+      root.render(<PreviewHarness initialDate="2026-07-08" institutions={institutions} />);
+    });
+
+    const selectBtn = container.querySelector('button') as HTMLButtonElement;
+    act(() => { selectBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // Wed 08:00 → Sat 08:00 = 72h: 24 weekday (Wed med day) + 24 feriado
+    // (Thu 2026-07-09 holiday) + 24 weekday (Fri med day).
+    act(() => { setInputValue(container.querySelector('[data-testid="hours"]') as HTMLInputElement, '72'); });
+
+    const amount = container.querySelector('[data-testid="amount"]') as HTMLElement;
+    // 24 × 5000 + 24 × 9000 + 24 × 5000 = 456000
+    expect(amount.textContent).toBe('456.000');
   });
 });
 

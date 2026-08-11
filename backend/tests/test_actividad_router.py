@@ -138,3 +138,52 @@ class TestGuardiaAmountSentinel:
         )
         result = await crear_actividad(actividad, "user-123", db)
         assert result["amount"] == round(8 * 7000.5, 2)
+
+
+class TestLongGuardiaContract:
+    """72h+ guardias are accepted through the full create contract.
+
+    Regression: the frontend removed its 48h cap, so the UI advertises
+    amounts for 72h+ guardias that the backend used to reject with 422 at
+    the model layer. The 720h bound that replaced the cap is an anti-DoS
+    guard for the per-hour classifier, NOT a business limit.
+    """
+
+    @pytest.mark.asyncio
+    async def test_72h_guardia_with_holiday_inside_is_accepted(self):
+        """72h guardia (Wed 08:00 → Sat 08:00, Thu 07-09 holiday inside) is
+        accepted end-to-end and the stored amount uses the medical-day split.
+
+        Wed med day (24 weekday) + Thu holiday (24 feriado) + Fri med day
+        (24 weekday) = (24 × 5000) + (24 × 9000) + (24 × 5000) = 456000.
+        """
+        db = FakeDB(feriado_rate=9000)
+        actividad = ActividadCreate(
+            type=ActivityType.GUARDIA,
+            institution="Hospital Test",
+            date="2026-07-08",  # miércoles, antes del feriado del jueves
+            amount=0,
+            hours=72,
+            start_time="08:00",
+            end_date="2026-07-11",
+            end_time="08:00",
+        )
+        result = await crear_actividad(actividad, "user-123", db)
+        assert result["amount"] == (24 * 5000) + (24 * 9000) + (24 * 5000)  # 456000
+
+    @pytest.mark.asyncio
+    async def test_96h_guardia_is_accepted_through_route(self):
+        """96h guardia passes model validation and reaches the route."""
+        db = FakeDB(feriado_rate=9000)
+        actividad = ActividadCreate(
+            type=ActivityType.GUARDIA,
+            institution="Hospital Test",
+            date="2026-06-05",  # viernes
+            amount=0,
+            hours=96,
+            start_time="08:00",
+            end_date="2026-06-09",
+            end_time="08:00",
+        )
+        result = await crear_actividad(actividad, "user-123", db)
+        assert result["hours"] == 96

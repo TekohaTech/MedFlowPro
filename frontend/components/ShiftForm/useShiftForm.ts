@@ -171,9 +171,10 @@ export function useShiftForm(
     }
   }, [activityMode, date, hours, startTime]);
 
-  // Range errors shown in the form: backwards range (end <= start) or a range
-  // longer than 48h (the backend caps the range at 48h and rejects both with
-  // 422). The preview must never silently fall back to a stale amount.
+  // Range error shown in the form: a backwards range (end <= start) is
+  // rejected. There is no maximum duration — a doctor can legitimately work
+  // 72h+ guardias and the amount is classified hour-by-hour regardless of
+  // length. The preview must never silently fall back to a stale amount.
   const [previewError, setPreviewError] = useState<string | null>(null);
 
   // Amount preview: hours classified by medical day (08:00 → 08:00), matching
@@ -193,11 +194,6 @@ export function useShiftForm(
     const end = new Date(endDate + 'T' + endTime);
     if (end <= start) {
       setPreviewError(t.errorRangoInvertido);
-      setAmount('');
-      return;
-    }
-    if (end.getTime() - start.getTime() > 48 * 60 * 60 * 1000) {
-      setPreviewError(t.errorMax48Horas);
       setAmount('');
       return;
     }

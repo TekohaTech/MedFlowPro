@@ -402,3 +402,77 @@ class TestClassifyGuardiaHours:
             datetime(2026, 6, 7, 8, 0),  # Sunday
         )
         assert split == {"weekday_hours": 24, "weekend_hours": 24, "feriado_hours": 0}
+
+
+class TestLongGuardiasCrossingHolidays:
+    """Long guardias (72h+) crossing national holidays — medical-day split.
+
+    Mirrors the frontend 'guardias largas que cruzan feriados' cases. No 2026
+    holiday falls on a Wednesday, so the "start before a holiday with it
+    inside" template uses the real Thursday holiday 2026-07-09 (Wed → Sat).
+    """
+
+    def test_72h_starting_before_holiday_with_holiday_inside(self):
+        """Wed 2026-07-08 08:00 → Sat 2026-07-11 08:00 with Thu 07-09 holiday.
+
+        24 weekday (Wed med day) + 24 feriado (Thu holiday) + 24 weekday
+        (Fri med day) = 456000.
+        """
+        amount = calculate_guardia_amount(
+            start_date=datetime(2026, 7, 8),  # Wednesday
+            hours=72,
+            semana_rate=5000,
+            finde_rate=8000,
+            feriado_rate=9000,
+            start_time="08:00",
+            end_date="2026-07-11",
+            end_time="08:00",
+        )
+        assert amount == (24 * 5000) + (24 * 9000) + (24 * 5000)  # 456000
+
+    def test_24h_on_monday_holiday(self):
+        """Monday 2026-05-25 holiday → 24 × feriado_rate."""
+        amount = calculate_guardia_amount(
+            start_date=datetime(2026, 5, 25),  # Monday holiday
+            hours=24,
+            semana_rate=5000,
+            finde_rate=8000,
+            feriado_rate=9000,
+            start_time="08:00",
+            end_date="2026-05-26",
+            end_time="08:00",
+        )
+        assert amount == 24 * 9000  # 216000
+
+    def test_weekend_holiday_feriado_wins_over_finde(self):
+        """Saturday 2026-06-20 holiday → feriado wins over finde (24 × feriado)."""
+        amount = calculate_guardia_amount(
+            start_date=datetime(2026, 6, 20),  # Saturday holiday
+            hours=24,
+            semana_rate=5000,
+            finde_rate=8000,
+            feriado_rate=9000,
+            start_time="08:00",
+            end_date="2026-06-21",
+            end_time="08:00",
+        )
+        assert amount == 24 * 9000  # 216000, NOT 24 * 8000
+
+    def test_holiday_without_feriado_rate_falls_back_in_long_range(self):
+        """Fri 2026-06-19 08:00 → Mon 2026-06-22 08:00, Sat 06-20 holiday with
+        no feriado_rate: holiday hours fall back to the weekend bucket.
+
+        24 weekday (Fri med day) + 24 weekend (Sat holiday → weekend) + 24
+        weekend (Sun med day) = 504000.
+        """
+        amount = calculate_guardia_amount(
+            start_date=datetime(2026, 6, 19),  # Friday
+            hours=72,
+            semana_rate=5000,
+            finde_rate=8000,
+            feriado_rate=None,
+            start_time="08:00",
+            end_date="2026-06-22",
+            end_time="08:00",
+        )
+        assert amount == (24 * 5000) + (48 * 8000)  # 504000

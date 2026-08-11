@@ -50,7 +50,10 @@ class ActividadCreate(ActividadBase):
     weekend_hours: Optional[int] = Field(None, ge=0, description="Horas en fin de semana")
 
     # Campos específicos de Guardia
-    hours: Optional[int] = Field(None, ge=1, le=48, description="Horas de guardia")
+    # Anti-DoS bound (720h = 30 days), NOT a product limit: doctors
+    # legitimately work 72h+ guardias, and the per-hour classifier does
+    # O(hours) work per request, so an unbounded value means unbounded work.
+    hours: Optional[int] = Field(None, ge=1, le=720, description="Horas de guardia")
     hourly_rate: Optional[float] = Field(None, ge=0, description="Valor por hora")
     start_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$", description="Hora inicio")
     end_time: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$", description="Hora fin")
@@ -78,9 +81,11 @@ class ActividadCreate(ActividadBase):
         end_date + end_time) is declared, the range is the source of truth for
         the amount (the backend computes by medical-day hour classification).
 
-        Reject backwards ranges (end <= start) and ranges longer than 48 hours.
-        The classifier iterates per hour, so an unbounded end_date would mean
-        unbounded work per request (e.g. end_date '2050-01-01' = 210k hours).
+        Reject backwards ranges (end <= start). The 720h bound is an anti-DoS
+        guard, NOT a business limit: doctors legitimately work 72h+ guardias,
+        and the per-hour classifier iterates one loop per hour, so an unbounded
+        end_date would mean unbounded work per request (e.g. end_date
+        '2050-01-01' = 210k hours). 720h = 30 days, far above any real guardia.
         """
         if (
             self.type == ActivityType.GUARDIA
@@ -90,8 +95,8 @@ class ActividadCreate(ActividadBase):
             end_dt = datetime.strptime(f"{self.end_date} {self.end_time}", "%Y-%m-%d %H:%M")
             if end_dt <= start_dt:
                 raise ValueError("El fin de la guardia debe ser posterior al inicio")
-            if end_dt - start_dt > timedelta(hours=48):
-                raise ValueError("La guardia no puede superar las 48 horas")
+            if end_dt - start_dt > timedelta(hours=720):
+                raise ValueError("La guardia no puede superar las 720 horas (30 días)")
         return self
 
 
