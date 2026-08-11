@@ -12,7 +12,7 @@ export function formatDMY(d: Date): string {
 // Human-readable range for a transaction: shows duration + full range for
 // guardias that cross days (or last 24h+), plain times for same-day items,
 // and a dated range for non-guardia items that cross days.
-export function formatGuardiaRange(tx: Transaction, guardiaLabel: string = 'Guardia de'): string {
+export function formatGuardiaRange(tx: Transaction, guardiaLabel: string): string {
   if (!tx.date || !tx.startTime || !tx.endTime) return '';
   const endDate = tx.endDate || tx.date;
   const start = new Date(`${tx.date}T${tx.startTime}`);

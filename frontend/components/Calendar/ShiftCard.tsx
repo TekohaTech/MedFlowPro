@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import type { Locale } from 'date-fns';
 import { Transaction } from '../../types';
 import { ShiftCardHeader } from './ShiftCardHeader';
 import { CardActions } from './CardActions';
@@ -10,7 +9,6 @@ interface ShiftCardProps {
   /** Exact note text to render (guardia: g.notes; standalone: notes || procedureName || specialty || conceptName). */
   notes?: string;
   t: Record<string, string>;
-  locale: Locale;
   onOpenForm: (date?: string, tx?: Transaction) => void;
   onDeleteRequest: (id: string) => void;
   children?: ReactNode;

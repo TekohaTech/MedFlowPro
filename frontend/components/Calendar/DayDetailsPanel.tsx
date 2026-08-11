@@ -38,7 +38,7 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
               {isToday(selectedDay) ? t.hoy : format(selectedDay, 'EEEE d', { locale })}
             </h3>
             <p className="text-[9px] text-slate-600 dark:text-slate-300 font-black uppercase tracking-[0.2em] mt-1">
-              {grouped.length} {t.turnos} {t.registrados}
+              {grouped.length} {grouped.length === 1 ? t.turno : t.turnos} {grouped.length === 1 ? t.registrado : t.registrados}
             </p>
          </div>
          <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-[1.2rem] flex items-center justify-center shrink-0">
@@ -69,7 +69,7 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
           if (group.guardia) {
             const g = group.guardia; const gRange = formatGuardiaRange(g, t.guardiaDe);
             return (
-              <ShiftCard key={`g-${gi}`} tx={g} range={gRange} notes={g.notes} t={t} locale={locale} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId}>
+              <ShiftCard key={`g-${gi}`} tx={g} range={gRange} notes={g.notes} t={t} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId}>
                 {/* Sub-items nested */}
                 {group.subItems.length > 0 && (
                   <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700">
@@ -84,7 +84,7 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
 
           // Standalone items (no guardia in group)
           return group.standalone.map(item => (
-            <ShiftCard key={item.id} tx={item} range={formatGuardiaRange(item, t.guardiaDe)} notes={item.notes || item.procedureName || item.specialty || item.conceptName} t={t} locale={locale} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId} />
+            <ShiftCard key={item.id} tx={item} range={formatGuardiaRange(item, t.guardiaDe)} notes={item.notes || item.procedureName || item.specialty || item.conceptName} t={t} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId} />
           ));
         })}
 

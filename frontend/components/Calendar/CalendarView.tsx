@@ -73,7 +73,7 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
       {monthSummary.overlaps.length > 0 && (
         <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 mb-4 space-y-2">
           <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">
-            ⚠ {monthSummary.overlaps.length} {t.superposicionDetectada}
+            ⚠ {monthSummary.overlaps.length} {monthSummary.overlaps.length === 1 ? t.superposicionDetectada : t.superposicionesDetectadas}
           </p>
           {monthSummary.overlaps.map((o: OverlapInfo, i: number) => (
             <div key={i} className="text-[9px] text-red-500 dark:text-red-400 leading-relaxed">

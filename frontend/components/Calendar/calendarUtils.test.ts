@@ -69,27 +69,27 @@ describe('formatGuardiaRange', () => {
   });
 
   it('shows duration + full range for a 24h guardia that crosses days', () => {
-    expect(formatGuardiaRange(tx({ endDate: '2026-07-03' }))).toBe('Guardia de 24h · 02/07 08:00 → 03/07 08:00');
+    expect(formatGuardiaRange(tx({ endDate: '2026-07-03' }), 'Guardia de')).toBe('Guardia de 24h · 02/07 08:00 → 03/07 08:00');
   });
 
   it('shows 72h for a 3-day guardia', () => {
-    expect(formatGuardiaRange(tx({ endDate: '2026-07-05' }))).toBe('Guardia de 72h · 02/07 08:00 → 05/07 08:00');
+    expect(formatGuardiaRange(tx({ endDate: '2026-07-05' }), 'Guardia de')).toBe('Guardia de 72h · 02/07 08:00 → 05/07 08:00');
   });
 
   it('shows plain times for a same-day guardia', () => {
-    expect(formatGuardiaRange(tx({ endDate: '2026-07-02', endTime: '20:00' }))).toBe('08:00 → 20:00');
+    expect(formatGuardiaRange(tx({ endDate: '2026-07-02', endTime: '20:00' }), 'Guardia de')).toBe('08:00 → 20:00');
   });
 
   it('uses the stored duration when present', () => {
-    expect(formatGuardiaRange(tx({ endDate: '2026-07-03', duration: 24 }))).toBe('Guardia de 24h · 02/07 08:00 → 03/07 08:00');
+    expect(formatGuardiaRange(tx({ endDate: '2026-07-03', duration: 24 }), 'Guardia de')).toBe('Guardia de 24h · 02/07 08:00 → 03/07 08:00');
   });
 
   it('shows a dated range for a non-guardia item that crosses days', () => {
     const proc = tx({ type: ShiftType.CONSULTATION, endDate: '2026-07-03' });
-    expect(formatGuardiaRange(proc)).toBe('02/07 08:00 → 03/07 08:00');
+    expect(formatGuardiaRange(proc, 'Guardia de')).toBe('02/07 08:00 → 03/07 08:00');
   });
 
   it('returns empty string when times are missing', () => {
-    expect(formatGuardiaRange(tx({ startTime: undefined, endTime: undefined }))).toBe('');
+    expect(formatGuardiaRange(tx({ startTime: undefined, endTime: undefined }), 'Guardia de')).toBe('');
   });
 });

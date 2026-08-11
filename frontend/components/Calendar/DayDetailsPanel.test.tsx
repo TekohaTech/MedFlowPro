@@ -12,7 +12,10 @@ const t = {
   feriadoNacional: 'Feriado nacional',
   hoy: 'Hoy',
   turnos: 'Turnos',
+  turno: 'Turno',
   registrados: 'registrados',
+  registrado: 'registrado',
+  guardiaDe: 'Guardia de',
   editar: 'Editar',
   eliminar: 'Eliminar',
   cancelar: 'Cancelar',
@@ -174,7 +177,7 @@ describe('DayDetailsPanel — turn counter counts visible cards, not sub-items',
         onDelete={() => {}}
       />,
     );
-    expect(html).toContain('1 Turnos registrados');
+    expect(html).toContain('1 Turno registrado');
     expect(html).not.toContain('2 Turnos registrados');
   });
 });
