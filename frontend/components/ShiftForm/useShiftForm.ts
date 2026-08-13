@@ -2,13 +2,21 @@ import { useState, useEffect, useRef, useActionState } from 'react';
 import { format, addDays } from 'date-fns';
 import { ShiftType, Transaction, PaymentStatus, type Institution } from '../../types';
 import { esFeriado } from '../../lib/feriados';
-import { classifyGuardiaHours } from '../../lib/guardiaHours';
+import { computeGuardiaBreakdown } from '../../lib/guardiaBreakdown';
 import { parseAmount } from '../../lib/utils';
 import { translations, type Language } from '../../translations';
 
 type ActivityMode = 'guardia' | 'extra';
 
-interface ExtraActivity {
+/** Breakdown segment used by RateInfo to render the mixed day-type line. */
+export interface RateBreakdownSegment {
+  hours: number;
+  rate: number;
+  /** i18n key in translations.ts (diaSemana / diaFinde / diaFeriado). */
+  labelKey: 'diaSemana' | 'diaFinde' | 'diaFeriado';
+}
+
+export interface ExtraActivity {
   id: string;
   type: 'procedimiento' | 'interconsulta';
   procedureName?: string;
@@ -199,14 +207,13 @@ export function useShiftForm(
     }
     setPreviewError(null);
 
-    const semanaRate = selectedInstitution?.guardia_semana_rate ?? selectedInstitution?.guardia_rate ?? rawRate;
-    const findeRate = selectedInstitution?.guardia_finde_rate ?? semanaRate;
-    const feriadoRate = selectedInstitution?.guardia_feriado_rate;
-    const split = classifyGuardiaHours(start, end, feriadoRate != null);
+    const { split, semanaRate, findeRate, feriadoRate } = computeGuardiaBreakdown(
+      start, end, selectedInstitution ?? null, rawRate,
+    );
     const et = extras.reduce((s, e) => s + e.amount, 0);
     const total =
-      split.weekdayHours * semanaRate +
-      split.weekendHours * findeRate +
+      split.weekdayHours * (semanaRate ?? 0) +
+      split.weekendHours * (findeRate ?? 0) +
       split.feriadoHours * (feriadoRate ?? 0) +
       et;
     if (total > 0) setAmount(total.toLocaleString('es-AR'));
@@ -368,6 +375,56 @@ export function useShiftForm(
     setActivityMode(mode);
   };
 
+  // Flat-rate notice: selectedInstitution exists AND none of the four rate
+  // fields (guardia_rate legacy included) is configured. Without rates the
+  // backend respects the client-sent manual $/hora for ALL hours; the notice
+  // tells the user that. No institution selected → nothing to warn about.
+  const institutionHasNoRates = !!selectedInstitution && (
+    selectedInstitution.guardia_semana_rate == null &&
+    selectedInstitution.guardia_rate == null &&
+    selectedInstitution.guardia_finde_rate == null &&
+    selectedInstitution.guardia_feriado_rate == null
+  );
+
+  // Day-type breakdown (desglose): only when the institution HAS ≥1 rate AND
+  // the guardia crosses 2+ day types (weekday/weekend/holiday mix). Reuses the
+  // SAME medical-day classification the preview effect uses, but only drives a
+  // presentational listing. Conditions for null (no breakdown):
+  //  - activityMode !== 'guardia', or incomplete range, or backwards range
+  //  - institutionHasNoRates (notice is shown instead)
+  //  - fewer than 2 segments with hours > 0 (single day type → nothing to break)
+  let rateBreakdown: RateBreakdownSegment[] | null = null;
+  if (
+    activityMode === 'guardia' &&
+    !institutionHasNoRates &&
+    selectedInstitution &&
+    date && startTime && endDate && endTime &&
+    parseInt(hours) > 0
+  ) {
+    const start = new Date(date + 'T' + startTime);
+    const end = new Date(endDate + 'T' + endTime);
+    if (end > start) {
+      // Rate fallbacks mirror the preview effect and the backend legacy rule
+      // (actividades.py: finde_rate = guardia_finde_rate ?? guardia_rate):
+      // findeRate falls back to the weekday rate, so legacy institutions
+      // (only guardia_rate set) still get a weekend segment in the breakdown.
+      const { split, semanaRate, findeRate, feriadoRate } = computeGuardiaBreakdown(
+        start, end, selectedInstitution, null,
+      );
+      const segments: RateBreakdownSegment[] = [];
+      if (split.weekdayHours > 0 && semanaRate != null) {
+        segments.push({ hours: split.weekdayHours, rate: semanaRate, labelKey: 'diaSemana' });
+      }
+      if (split.weekendHours > 0 && findeRate != null) {
+        segments.push({ hours: split.weekendHours, rate: findeRate, labelKey: 'diaFinde' });
+      }
+      if (split.feriadoHours > 0 && feriadoRate != null) {
+        segments.push({ hours: split.feriadoHours, rate: feriadoRate, labelKey: 'diaFeriado' });
+      }
+      if (segments.length >= 2) rateBreakdown = segments;
+    }
+  }
+
   return {
     amount, setAmount, date, setDate, institution, status,
     notes, setNotes, startTime, setStartTime, endTime, setEndTime,
@@ -380,5 +437,7 @@ export function useShiftForm(
     activityMode, handleModeChange,
     conceptName, setConceptName,
     subItemName, setSubItemName, isSubItemEdit, subItemType,
+    // Rate info (flat-rate notice + day-type breakdown)
+    institutionHasNoRates, rateBreakdown,
   };
 }

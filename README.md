@@ -85,7 +85,7 @@ sist_med/
 
 ### Frontend conventions
 
-- **Components:** máx. 200 líneas, máx. 3 `useState`, máx. 2 `useEffect`
+- **Components:** objetivo 200 líneas, máx. 250 (cap duro), máx. 3 `useState`, máx. 2 `useEffect`
 - **Custom hooks:** toda la lógica de estado va en hooks, no en componentes
 - **Forms:** siempre `useActionState` (React 19), nunca `useState` + submit manual
 - **Styling:** `cn()` utility (clsx + tailwind-merge), mobile-first (2 tiers: base/lg), dark mode
@@ -109,10 +109,10 @@ MongoDB 7.0 con Motor async. Colecciones: `users`, `actividades`, `institutions`
 ## Tests
 
 ```bash
-# Frontend (vitest) — 15 tests
+# Frontend (vitest)
 cd frontend && npm test
 
-# Backend (pytest) — 57 tests
+# Backend (pytest)
 cd backend && python3 -m pytest tests/ -v
 ```
 

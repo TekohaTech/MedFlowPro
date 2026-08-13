@@ -4,7 +4,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ShiftType, PaymentStatus, type Institution, type Transaction } from '../../types';
-import { toExtraActivity, newExtraActivity, getExtraId, resolveGuardiaRate, useShiftForm } from './useShiftForm';
+import { toExtraActivity, newExtraActivity, getExtraId, resolveGuardiaRate, useShiftForm, type RateBreakdownSegment } from './useShiftForm';
 import { formatMoneyInput, parseAmount } from '../../lib/utils';
 
 // Date defaults must be computed with LOCAL time. Node re-reads TZ on each
@@ -376,6 +376,145 @@ describe('useShiftForm — medical-day amount preview (08:00 → 08:00)', () => 
     const amount = container.querySelector('[data-testid="amount"]') as HTMLElement;
     // 24 × 5000 + 24 × 9000 + 24 × 5000 = 456000
     expect(amount.textContent).toBe('456.000');
+  });
+});
+
+/** Renders the hook exposing the flat-rate notice flag and the day-type
+ *  breakdown. Mirrors the ShiftForm inputs that drive both derivations:
+ *  institution select + hours (endDate/endTime are auto-computed by the hook). */
+function RateInfoHarness({ initialDate, institutions }: { initialDate: string; institutions: Institution[] }) {
+  const form = useShiftForm(() => {}, undefined, [], initialDate, institutions, () => {}, 'es');
+  return (
+    <div>
+      <button type="button" onClick={() => form.handleSelectInstitution('Hospital Test')}>select</button>
+      <input data-testid="hours" value={form.hours} onChange={(e) => form.setHours(e.target.value)} />
+      <span data-testid="noRates">{form.institutionHasNoRates ? 'true' : 'false'}</span>
+      <span data-testid="breakdown">{form.rateBreakdown ? JSON.stringify(form.rateBreakdown) : ''}</span>
+    </div>
+  );
+}
+
+describe('useShiftForm — rate info derivations (flat-rate notice + day-type breakdown)', () => {
+  let container: HTMLDivElement;
+  let root: ReturnType<typeof createRoot>;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  it('institution WITHOUT rates → notice flag true, breakdown null', async () => {
+    const institutions: Institution[] = [{
+      id: 'i1',
+      name: 'Hospital Test',
+      // No rate fields at all: the institution exists but has no configured rates.
+      is_active: true,
+    }];
+
+    await act(async () => {
+      root.render(<RateInfoHarness initialDate="2026-05-26" institutions={institutions} />);
+    });
+
+    const selectBtn = container.querySelector('button') as HTMLButtonElement;
+    act(() => { selectBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+
+    const noRates = container.querySelector('[data-testid="noRates"]') as HTMLElement;
+    const breakdown = container.querySelector('[data-testid="breakdown"]') as HTMLElement;
+    expect(noRates.textContent).toBe('true');
+    expect(breakdown.textContent).toBe('');
+  });
+
+  it('institution WITH rates + 72h mixing weekday/holiday → breakdown with 2+ segments', async () => {
+    const institutions: Institution[] = [{
+      id: 'i1',
+      name: 'Hospital Test',
+      guardia_semana_rate: 5000,
+      guardia_finde_rate: 8000,
+      guardia_feriado_rate: 9000,
+      is_active: true,
+    }];
+
+    await act(async () => {
+      root.render(<RateInfoHarness initialDate="2026-07-08" institutions={institutions} />);
+    });
+
+    const selectBtn = container.querySelector('button') as HTMLButtonElement;
+    act(() => { selectBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // Wed 08:00 → Sat 08:00 = 72h: 24 weekday (Wed med day) + 24 feriado
+    // (Thu 2026-07-09 holiday) + 24 weekday (Fri med day).
+    act(() => { setInputValue(container.querySelector('[data-testid="hours"]') as HTMLInputElement, '72'); });
+
+    const noRates = container.querySelector('[data-testid="noRates"]') as HTMLElement;
+    const breakdown = container.querySelector('[data-testid="breakdown"]') as HTMLElement;
+    expect(noRates.textContent).toBe('false');
+
+    const segments = JSON.parse(breakdown.textContent ?? '') as RateBreakdownSegment[];
+    expect(segments.length).toBeGreaterThanOrEqual(2);
+    expect(segments[0]).toEqual({ hours: 48, rate: 5000, labelKey: 'diaSemana' });
+    expect(segments[1]).toEqual({ hours: 24, rate: 9000, labelKey: 'diaFeriado' });
+  });
+
+  it('legacy institution (guardia_rate only) + Fri→Mon with Sat holiday → breakdown includes the finde segment at the legacy rate', async () => {
+    const institutions: Institution[] = [{
+      id: 'i1',
+      name: 'Hospital Test',
+      // Legacy data: only guardia_rate + guardia_feriado_rate are set; no
+      // guardia_semana_rate / guardia_finde_rate. The preview and the backend
+      // (actividades.py) fall back to guardia_rate for weekday AND weekend
+      // hours, so the breakdown must show the weekend segment too — otherwise
+      // the displayed line (336.000) disagrees with the preview (456.000).
+      guardia_rate: 5000,
+      guardia_feriado_rate: 9000,
+      is_active: true,
+    }];
+
+    await act(async () => {
+      root.render(<RateInfoHarness initialDate="2026-06-19" institutions={institutions} />);
+    });
+
+    const selectBtn = container.querySelector('button') as HTMLButtonElement;
+    act(() => { selectBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // Fri 08:00 → Mon 08:00 = 72h: 24 weekday (Fri) + 24 feriado (Sat
+    // 2026-06-20 holiday) + 24 weekend (Sun).
+    act(() => { setInputValue(container.querySelector('[data-testid="hours"]') as HTMLInputElement, '72'); });
+
+    const breakdown = container.querySelector('[data-testid="breakdown"]') as HTMLElement;
+    const segments = JSON.parse(breakdown.textContent ?? '') as RateBreakdownSegment[];
+    expect(segments).toHaveLength(3);
+    expect(segments[0]).toEqual({ hours: 24, rate: 5000, labelKey: 'diaSemana' });
+    expect(segments[1]).toEqual({ hours: 24, rate: 5000, labelKey: 'diaFinde' });
+    expect(segments[2]).toEqual({ hours: 24, rate: 9000, labelKey: 'diaFeriado' });
+  });
+
+  it('single day type → breakdown null, no notice', async () => {
+    const institutions: Institution[] = [{
+      id: 'i1',
+      name: 'Hospital Test',
+      guardia_semana_rate: 5000,
+      guardia_finde_rate: 8000,
+      guardia_feriado_rate: null,
+      is_active: true,
+    }];
+
+    await act(async () => {
+      root.render(<RateInfoHarness initialDate="2026-08-05" institutions={institutions} />);
+    });
+
+    const selectBtn = container.querySelector('button') as HTMLButtonElement;
+    act(() => { selectBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    // Wed 08:00 → Thu 08:00 = 24h, all weekday: a single day type → no breakdown.
+    act(() => { setInputValue(container.querySelector('[data-testid="hours"]') as HTMLInputElement, '24'); });
+
+    const noRates = container.querySelector('[data-testid="noRates"]') as HTMLElement;
+    const breakdown = container.querySelector('[data-testid="breakdown"]') as HTMLElement;
+    expect(noRates.textContent).toBe('false');
+    expect(breakdown.textContent).toBe('');
   });
 });
 

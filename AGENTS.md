@@ -3,7 +3,7 @@
 ## CRITICAL: Follow these at all times
 
 ### Component Size
-- Max **200 lines** per component. Over 200 → extract subcomponents.
+- **200 lines** per component is the target. **250 lines is the hard cap** — over 250 → extract subcomponents.
 - Max **3 useState** per component. Over 3 → custom hook.
 - Max **2 useEffect** per component. Over 2 → custom hook.
 - One component = one file. Never define components inside other components.
