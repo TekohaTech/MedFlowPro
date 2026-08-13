@@ -53,7 +53,7 @@ export function toExtraActivity(t: Transaction): ExtraActivity {
 // Newly added extras carry an ephemeral id and must be CREATED on submit.
 export function newExtraActivity(rate: number): ExtraActivity {
   return {
-    id: Math.random().toString(36).slice(2),
+    id: crypto.randomUUID(),
     type: 'procedimiento',
     procedureName: '',
     amount: rate,
@@ -130,11 +130,11 @@ export function useShiftForm(
   // Para procedimiento/interconsulta: nombre separado de notas
   const isSubItemEdit = editingTransaction?.type === ShiftType.CONSULTATION || editingTransaction?.type === ShiftType.PASSIVE;
   const subItemType = isSubItemEdit
-    ? (editingTransaction!.type === ShiftType.CONSULTATION ? 'procedimiento' as const : 'interconsulta' as const)
+    ? (editingTransaction.type === ShiftType.CONSULTATION ? 'procedimiento' as const : 'interconsulta' as const)
     : undefined;
   const [subItemName, setSubItemName] = useState(
     isSubItemEdit
-      ? (editingTransaction!.procedureName || editingTransaction!.specialty || '')
+      ? (editingTransaction.procedureName || editingTransaction.specialty || '')
       : ''
   );
 
