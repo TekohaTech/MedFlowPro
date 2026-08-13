@@ -179,18 +179,24 @@ async def crear_actividad(
             finde_rate = inst.get("guardia_finde_rate")
             if finde_rate is None:
                 finde_rate = inst.get("guardia_rate")
-            actividad.amount = calculate_guardia_amount(
-                start_date=start_date_dt,
-                hours=actividad.hours,
-                semana_rate=semana_rate,
-                finde_rate=finde_rate,
-                weekday_hours=actividad.weekday_hours,
-                weekend_hours=actividad.weekend_hours,
-                feriado_rate=inst.get("guardia_feriado_rate"),
-                start_time=actividad.start_time,
-                end_date=actividad.end_date,
-                end_time=actividad.end_time,
-            )
+            feriado_rate = inst.get("guardia_feriado_rate")
+            # Institution with NO configured rates (all three None) → respect
+            # the client-sent amount (flat manual $/Hora applies to every hour).
+            # Institution with ≥1 configured rate → backend is authoritative:
+            # calculate_guardia_amount recomputes by hour classification.
+            if semana_rate is not None or finde_rate is not None or feriado_rate is not None:
+                actividad.amount = calculate_guardia_amount(
+                    start_date=start_date_dt,
+                    hours=actividad.hours,
+                    semana_rate=semana_rate,
+                    finde_rate=finde_rate,
+                    weekday_hours=actividad.weekday_hours,
+                    weekend_hours=actividad.weekend_hours,
+                    feriado_rate=feriado_rate,
+                    start_time=actividad.start_time,
+                    end_date=actividad.end_date,
+                    end_time=actividad.end_time,
+                )
         # Fallback manual-rate path: only when NO amount was provided at all.
         # 0 is a VALID stored amount (e.g. a holiday with a configured
         # feriado_rate of 0) — it must never be recomputed here.

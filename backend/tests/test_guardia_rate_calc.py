@@ -476,3 +476,24 @@ class TestLongGuardiasCrossingHolidays:
             end_time="08:00",
         )
         assert amount == (24 * 5000) + (48 * 8000)  # 504000
+
+    def test_72h_touching_all_three_factors_weekday_feriado_weekend(self):
+        """Fri 2026-06-19 08:00 → Mon 2026-06-22 08:00, Sat 06-20 holiday with
+        feriado_rate configured: each factor bills at its own rate.
+
+        24 weekday (Fri med day) + 24 feriado (Sat holiday) + 24 weekend
+        (Sun med day) = 24×5000 + 24×9000 + 24×8000 = 528000.
+        Mirrors frontend 'guardias largas que cruzan feriados' case at
+        frontend/lib/guardiaHours.test.ts:122.
+        """
+        amount = calculate_guardia_amount(
+            start_date=datetime(2026, 6, 19),  # Friday
+            hours=72,
+            semana_rate=5000,
+            finde_rate=8000,
+            feriado_rate=9000,
+            start_time="08:00",
+            end_date="2026-06-22",
+            end_time="08:00",
+        )
+        assert amount == (24 * 5000) + (24 * 9000) + (24 * 8000)  # 528000
