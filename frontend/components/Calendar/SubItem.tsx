@@ -7,15 +7,22 @@ import { typeLabel, typeStyle } from './ShiftCardHeader';
 interface SubItemProps {
   sub: Transaction;
   gRange: string;
+  /** Institution hex color for the left accent (extras keep the default border). */
+  color?: string | null;
+  /** Hide the amount (coverage-card context: the card must show NO monetary values). */
+  hideAmount?: boolean;
   t: Record<string, string>;
   locale: Locale;
   onOpenForm: (date?: string, tx?: Transaction) => void;
   onDeleteRequest: (id: string) => void;
 }
 
-export function SubItem({ sub, gRange, t, locale, onOpenForm, onDeleteRequest }: SubItemProps) {
+export function SubItem({ sub, gRange, color, hideAmount, t, locale, onOpenForm, onDeleteRequest }: SubItemProps) {
   return (
-    <div className="pl-3 border-l-2 border-slate-300 dark:border-slate-600">
+    <div
+      className="pl-3 border-l-2 border-slate-300 dark:border-slate-600"
+      style={color ? { borderLeftColor: color } : undefined}
+    >
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           <span className={cn("text-[8px] font-black px-1.5 py-0.5 rounded-lg uppercase tracking-wider shrink-0", typeStyle(sub.type))}>{typeLabel(sub.type, t)}</span>
@@ -30,10 +37,14 @@ export function SubItem({ sub, gRange, t, locale, onOpenForm, onDeleteRequest }:
           </p>
         )}
         {/* Monto nowrap a la izquierda + botones shrink-0 a la
-            derecha: en celular el lápiz/papelera NUNCA tapan el monto. */}
+            derecha: en celular el lápiz/papelera NUNCA tapan el monto.
+            En contexto de cobertura (hideAmount) el monto no se muestra
+            y los botones quedan alineados a la derecha. */}
         <div className="flex items-center gap-1.5 justify-between min-w-0">
-          <span className="font-bold text-xs text-slate-900 dark:text-white whitespace-nowrap shrink-0">${sub.amount.toLocaleString('es-AR')}</span>
-          <div className="flex items-center gap-1 shrink-0">
+          {!hideAmount && (
+            <span className="font-bold text-xs text-slate-900 dark:text-white whitespace-nowrap shrink-0">${sub.amount.toLocaleString('es-AR')}</span>
+          )}
+          <div className={cn("flex items-center gap-1 shrink-0", hideAmount && "ml-auto")}>
             <button onClick={() => onOpenForm(undefined, sub)}
               className="p-1.5 bg-white dark:bg-slate-800 text-blue-600 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 hover:scale-110 active:scale-95 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
               title={t.editar}><Edit3 className="w-3.5 h-3.5" /></button>

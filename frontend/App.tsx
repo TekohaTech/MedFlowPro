@@ -1,4 +1,5 @@
 import { translations } from "./translations";
+import { cn } from "./lib/utils";
 import { useAppState } from "./hooks/useAppState";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { ShiftForm } from "./components/ShiftForm/ShiftForm";
@@ -53,7 +54,7 @@ function App() {
 
   return (
     <div
-      className={`min-h-screen font-sans flex flex-col lg:flex-row transition-colors duration-300 ${settings.darkMode ? "bg-slate-950 text-slate-100 dark" : "bg-sky-200 text-[#1E293B]"}`}
+      className={cn("min-h-screen font-sans flex flex-col lg:flex-row transition-colors duration-300", settings.darkMode ? "bg-slate-950 text-slate-100 dark" : "bg-sky-200 text-[#1E293B]")}
     >
       <Sidebar
         activeView={activeView}
@@ -61,7 +62,7 @@ function App() {
         insight={insight}
         onNavigate={handleViewChange}
         onLogout={auth.handleLogout}
-        labels={{ inicio: t.inicio, guardias: t.guardias || "Guardias", ajustes: t.ajustes }}
+        labels={{ inicio: t.inicio, guardias: t.guardias, ajustes: t.ajustes }}
       />
 
       <main className="flex-1 flex flex-col relative pb-32 lg:pb-0 overflow-hidden print:overflow-visible print:pb-0">
@@ -80,13 +81,12 @@ function App() {
           {activeView === "reportes" && (
             <ReportsView
               transactions={tx.transactions}
+              institutions={tx.institutions}
               settings={settings}
               profile={profile}
               onBack={() => handleViewChange("inicio")}
               onOpenForm={(date, t) => openForm(date, t)}
-              onEdit={(t) => openForm(undefined, t)}
               onDelete={tx.handleDeleteTransaction}
-              onUpdate={tx.handleUpdateTransaction}
             />
           )}
           {activeView === "stats" && (

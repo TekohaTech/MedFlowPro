@@ -82,6 +82,7 @@ export function ShiftForm({
               onInstitutionChange={onInstitutionChange}
               onInstitutionDelete={onInstitutionDelete}
               activityMode={isExtra ? 'extra' : 'guardia'}
+              language={settings.language}
             />
             {form.institution && !form.selectedInstitution && (
               <p className="text-[10px] text-amber-500 font-bold">

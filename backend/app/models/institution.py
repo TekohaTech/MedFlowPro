@@ -5,6 +5,7 @@ from datetime import datetime
 
 class InstitutionBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200, description="Nombre de la institución")
+    color: Optional[str] = Field(None, max_length=32, description="Color hex para identificar la institución en el calendario")
     guardia_rate: Optional[float] = Field(None, ge=0, description="Tarifa por hora guardia (alias, retrocompatible)")
     guardia_semana_rate: Optional[float] = Field(None, ge=0, description="Tarifa por hora guardia día de semana")
     guardia_finde_rate: Optional[float] = Field(None, ge=0, description="Tarifa por hora guardia fin de semana")
@@ -19,6 +20,7 @@ class InstitutionCreate(InstitutionBase):
 
 class InstitutionUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
+    color: Optional[str] = Field(None, max_length=32)
     guardia_rate: Optional[float] = Field(None, ge=0)
     guardia_semana_rate: Optional[float] = Field(None, ge=0)
     guardia_finde_rate: Optional[float] = Field(None, ge=0)

@@ -12,15 +12,23 @@ export function formatDMY(d: Date): string {
 // Human-readable range for a transaction: shows duration + full range for
 // guardias that cross days (or last 24h+), plain times for same-day items,
 // and a dated range for non-guardia items that cross days.
+export function guardiaDurationHours(tx: Transaction): number {
+  if (!tx.date || !tx.startTime || !tx.endTime) return 0;
+  const endDate = tx.endDate || tx.date;
+  const start = new Date(`${tx.date}T${tx.startTime}`);
+  const end = new Date(`${endDate}T${tx.endTime}`);
+  return tx.duration && tx.duration > 0
+    ? tx.duration
+    : Math.max(0, Math.round((end.getTime() - start.getTime()) / (60 * 60 * 1000)));
+}
+
 export function formatGuardiaRange(tx: Transaction, guardiaLabel: string): string {
   if (!tx.date || !tx.startTime || !tx.endTime) return '';
   const endDate = tx.endDate || tx.date;
   const start = new Date(`${tx.date}T${tx.startTime}`);
   const end = new Date(`${endDate}T${tx.endTime}`);
   const hm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-  const hours = tx.duration && tx.duration > 0
-    ? tx.duration
-    : Math.max(0, Math.round((end.getTime() - start.getTime()) / (60 * 60 * 1000)));
+  const hours = guardiaDurationHours(tx);
   const crossDay = !!tx.endDate && tx.endDate !== tx.date;
 
   if (tx.type === ShiftType.ACTIVE) {
@@ -33,6 +41,41 @@ export function formatGuardiaRange(tx: Transaction, guardiaLabel: string): strin
     return `${formatDMY(start)} ${hm(start)} → ${formatDMY(end)} ${hm(end)}`;
   }
   return `${hm(start)} → ${hm(end)}`;
+}
+
+// Coverage-day detail for a multi-day guardia, e.g.
+// "Guardia de 48h · comenzó 02/08 08:00 → 04/08 08:00". Used on coverage
+// cards where the value is deliberately NOT shown.
+export function formatCoverageDetail(tx: Transaction, guardiaLabel: string): string {
+  if (!tx.date || !tx.startTime || !tx.endTime) return '';
+  const endDate = tx.endDate || tx.date;
+  const start = new Date(`${tx.date}T${tx.startTime}`);
+  const end = new Date(`${endDate}T${tx.endTime}`);
+  const hm = (d: Date) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return `${guardiaLabel} ${guardiaDurationHours(tx)}h · comenzó ${formatDMY(start)} ${hm(start)} → ${formatDMY(end)} ${hm(end)}`;
+}
+
+// Compact "$408k" style for calendar cells (keeps the previous day-total look
+// while each row now shows a SINGLE guardia instead of a summed day).
+export function formatCompactAmount(amount: number): string {
+  return `$${(amount / 1000).toFixed(0)}k`;
+}
+
+// A transaction STARTS on the given day when its own date matches it.
+export function isShiftStart(dayStr: string, tx: Transaction): boolean {
+  return tx.date === dayStr;
+}
+
+// A transaction COVERS the given day without starting on it: a multi-day
+// guardia whose range includes the day.
+export function isShiftCoverage(dayStr: string, tx: Transaction): boolean {
+  return (
+    tx.date !== dayStr &&
+    !!tx.endDate &&
+    tx.type === ShiftType.ACTIVE &&
+    tx.date <= dayStr &&
+    tx.endDate >= dayStr
+  );
 }
 
 export function getShiftsForDay(day: Date, transactions: Transaction[]) {
@@ -58,12 +101,6 @@ export function getShiftsForDay(day: Date, transactions: Transaction[]) {
     }
     return false;
   });
-}
-
-export function isCoverageDay(day: Date, tx: Transaction) {
-  if (!tx.endDate || tx.type !== ShiftType.ACTIVE) return false;
-  const dateString = format(day, 'yyyy-MM-dd');
-  return tx.date <= dateString && tx.endDate >= dateString && tx.date !== dateString;
 }
 
 export interface OverlapInfo {

@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { ShiftType, PaymentStatus, type Transaction } from '../../types';
-import { getShiftsForDay, formatGuardiaRange } from './calendarUtils';
+import {
+  getShiftsForDay, formatGuardiaRange, formatCoverageDetail,
+  formatCompactAmount, isShiftStart, isShiftCoverage,
+} from './calendarUtils';
 
 const guardia: Transaction = {
   id: 'g1',
@@ -91,5 +94,55 @@ describe('formatGuardiaRange', () => {
 
   it('returns empty string when times are missing', () => {
     expect(formatGuardiaRange(tx({ startTime: undefined, endTime: undefined }), 'Guardia de')).toBe('');
+  });
+});
+
+describe('isShiftStart / isShiftCoverage', () => {
+  const multi = {
+    ...guardia,
+    id: 'm',
+    date: '2026-08-02',
+    endDate: '2026-08-04',
+    startTime: '08:00',
+    endTime: '08:00',
+  };
+
+  it('isShiftStart is true only on tx.date', () => {
+    expect(isShiftStart('2026-08-02', multi)).toBe(true);
+    expect(isShiftStart('2026-08-03', multi)).toBe(false);
+    expect(isShiftStart('2026-08-04', multi)).toBe(false);
+  });
+
+  it('isShiftCoverage is true on covered days, false on the start day and outside the range', () => {
+    expect(isShiftCoverage('2026-08-02', multi)).toBe(false); // start day
+    expect(isShiftCoverage('2026-08-03', multi)).toBe(true);
+    expect(isShiftCoverage('2026-08-04', multi)).toBe(true); // endDate inclusive
+    expect(isShiftCoverage('2026-08-05', multi)).toBe(false);
+  });
+
+  it('isShiftCoverage is false for non-guardia items', () => {
+    const proc = { ...multi, type: ShiftType.CONSULTATION };
+    expect(isShiftCoverage('2026-08-03', proc)).toBe(false);
+  });
+});
+
+describe('formatCompactAmount', () => {
+  it('renders the compact "$Nk" style', () => {
+    expect(formatCompactAmount(408000)).toBe('$408k');
+    expect(formatCompactAmount(816007.92)).toBe('$816k');
+    expect(formatCompactAmount(1020007.92)).toBe('$1020k');
+    expect(formatCompactAmount(0)).toBe('$0k');
+  });
+});
+
+describe('formatCoverageDetail', () => {
+  it('shows duration + "comenzó" range for a multi-day guardia', () => {
+    const multi: Transaction = {
+      id: 'm', institution: 'X', type: ShiftType.ACTIVE,
+      date: '2026-08-02', endDate: '2026-08-04',
+      startTime: '08:00', endTime: '08:00',
+      amount: 0, status: PaymentStatus.PENDING,
+    };
+    expect(formatCoverageDetail(multi, 'Guardia de')).toBe('Guardia de 48h · comenzó 02/08 08:00 → 04/08 08:00');
   });
 });

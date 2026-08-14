@@ -3,14 +3,17 @@ import {
   format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
   eachDayOfInterval, isSameMonth, isSameDay, isToday, type Locale,
 } from 'date-fns';
-import { Transaction, ShiftType } from '../../types';
+import { Transaction, Institution, PaymentStatus, ShiftType } from '../../types';
 import { cn } from '../../lib/utils';
 import { isHolidayDay, holidayName } from '../../lib/feriados';
-import { getShiftsForDay, isCoverageDay } from './calendarUtils';
+import { getInstitutionColorMap } from '../../lib/institutionColors';
+import { getShiftsForDay, isShiftStart, isShiftCoverage, formatCompactAmount } from './calendarUtils';
+import { ShiftDot } from './ShiftDots';
 import { ShiftTooltip, type HoverInfo } from './ShiftTooltip';
 
 interface CalendarGridProps {
   transactions: Transaction[];
+  institutions: Institution[];
   currentDate: Date;
   selectedDay: Date;
   locale: Locale;
@@ -18,8 +21,13 @@ interface CalendarGridProps {
   onDayClick: (day: Date) => void;
 }
 
+// The calendar shows guardias, not sums: up to 2 start-day rows per cell,
+// then a "+N" overflow indicator. Coverage days only show ring dots.
+const MAX_START_ROWS = 2;
+const MAX_COVERAGE_RINGS = 4;
+
 export function CalendarGrid({
-  transactions, currentDate, selectedDay, locale, t, onDayClick,
+  transactions, institutions, currentDate, selectedDay, locale, t, onDayClick,
 }: CalendarGridProps) {
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(monthStart);
@@ -27,10 +35,11 @@ export function CalendarGrid({
   const endDate = endOfWeek(monthEnd);
 
   const calendarDays = useMemo(() => eachDayOfInterval({ start: startDate, end: endDate }), [startDate, endDate]);
+  const colorMap = useMemo(() => getInstitutionColorMap(institutions), [institutions]);
 
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
 
-  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const dayNames = [t.diaDom, t.diaLun, t.diaMar, t.diaMie, t.diaJue, t.diaVie, t.diaSab];
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-300 dark:border-slate-700 shadow-2xl shadow-slate-200/40 dark:shadow-none overflow-hidden">
@@ -46,14 +55,18 @@ export function CalendarGrid({
 
       <div className="grid grid-cols-7 divide-x divide-y divide-slate-200 dark:divide-slate-700">
         {calendarDays.map((day, dayIdx) => {
+          const dayStr = format(day, 'yyyy-MM-dd');
           const shifts = getShiftsForDay(day, transactions);
+          const startShifts = shifts.filter(s => isShiftStart(dayStr, s));
+          const coverageShifts = shifts.filter(s => isShiftCoverage(dayStr, s));
+          // isShiftStart does NOT filter by type, so an extra/procedure logged
+          // earlier the same day could be startShifts[0]. The mobile row must
+          // show the first starting GUARDIA, not any starting item.
+          const firstStartGuardia = startShifts.find(s => s.type === ShiftType.ACTIVE);
           const isCurrentMonth = isSameMonth(day, monthStart);
           const isSelected = isSameDay(day, selectedDay);
           const isActuallyToday = isToday(day);
           const isHoliday = isCurrentMonth && isHolidayDay(day);
-          const dayTotal = shifts.reduce((s, t) => s + t.amount, 0);
-          const multiDayShifts = shifts.filter(s => s.endDate && s.endDate !== s.date && s.type === ShiftType.ACTIVE);
-          const hasCoverage = multiDayShifts.some(s => isCoverageDay(day, s));
 
           return (
             <div
@@ -65,13 +78,9 @@ export function CalendarGrid({
                 "min-h-[90px] lg:min-h-[120px] p-2 lg:p-3 transition-all cursor-pointer relative flex flex-col",
                 !isCurrentMonth && "bg-slate-50/30 dark:bg-slate-900/10 opacity-30",
                 isHoliday && "bg-amber-50/60 dark:bg-amber-900/15",
-                isSelected ? "bg-blue-50/50 dark:bg-blue-900/20 z-10" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/50",
-                hasCoverage && "bg-blue-50/30 dark:bg-blue-900/10"
+                isSelected ? "bg-blue-50/50 dark:bg-blue-900/20 z-10" : "hover:bg-slate-50/80 dark:hover:bg-slate-900/50"
               )}
             >
-              {hasCoverage && (
-                <div className="absolute inset-x-1 top-7 bottom-1 bg-blue-200/40 dark:bg-blue-700/20 rounded-lg pointer-events-none" />
-              )}
               <div className="flex justify-between items-start mb-1 relative">
                 <span className={cn(
                   "text-xs font-black w-7 h-7 flex items-center justify-center rounded-2xl transition-all shrink-0",
@@ -81,20 +90,15 @@ export function CalendarGrid({
                 )}>
                   {format(day, 'd')}
                 </span>
+                {/* Dots cluster (all breakpoints): filled = starts today, ring = coverage */}
                 {shifts.length > 0 && (
                   <div className="flex -space-x-1">
-                    {shifts.slice(0, 3).map((shift, i) => {
-                      const dotColor = shift.type === ShiftType.EXTRA
-                        ? "bg-amber-500"
-                        : shift.type === ShiftType.CONSULTATION
-                          ? "bg-purple-500"
-                          : shift.type === ShiftType.PASSIVE
-                            ? "bg-green-500"
-                            : "bg-blue-500";
-                      return (
-                        <div key={i} className={cn("w-1.5 h-1.5 rounded-full border border-white dark:border-slate-800", dotColor)} />
-                      );
-                    })}
+                    {startShifts.slice(0, 2).map(s => (
+                      <ShiftDot key={s.id} tx={s} colorMap={colorMap} size="xs" />
+                    ))}
+                    {coverageShifts.slice(0, 2).map(s => (
+                      <ShiftDot key={s.id} tx={s} colorMap={colorMap} size="xs" ring />
+                    ))}
                   </div>
                 )}
               </div>
@@ -105,40 +109,69 @@ export function CalendarGrid({
                 </span>
               )}
 
-              {dayTotal > 0 && (
-                <p className="text-[8px] font-black text-slate-900 dark:text-white mt-0.5 truncate relative">
-                  ${(dayTotal / 1000).toFixed(0)}k
-                </p>
-              )}
-
-              {multiDayShifts.slice(0, 1).map(s => (
-                <div key={`cov-${s.id}`} className="text-[6px] font-black text-blue-600 dark:text-blue-400 bg-blue-100/60 dark:bg-blue-900/40 px-1 rounded mt-0.5 truncate relative text-center">
-                  {s.startTime || '08:00'} → {s.endTime || '08:00'}
-                </div>
-              ))}
-
-              {/* Desktop: institution once + type-colored dots */}
-              {shifts.length > 0 && (
-                <div className="hidden lg:block space-y-0.5 mt-auto relative">
-                  <div className="flex items-center gap-1 text-[7px] font-black text-slate-600 dark:text-slate-300 leading-tight">
-                    <span className="truncate">{shifts[0].institution}</span>
-                    {Array.from(new Set(shifts.map(s => s.type))).map((type, i) => {
-                      const dotColor = type === ShiftType.EXTRA
-                        ? "bg-amber-500"
-                        : type === ShiftType.CONSULTATION
-                          ? "bg-purple-500"
-                          : type === ShiftType.PASSIVE
-                            ? "bg-green-500"
-                            : "bg-blue-500";
-                      return <div key={i} className={cn("w-1 h-1 rounded-full shrink-0", dotColor)} />;
-                    })}
+              {/* Desktop: one mini-row per item STARTING today (color dot + its
+                  own amount — never summed). Coverage guardias render only as
+                  ring dots, no amount. */}
+              <div className="hidden lg:block space-y-0.5 mt-auto relative">
+                {startShifts.slice(0, MAX_START_ROWS).map(s => (
+                  <div key={s.id} className="flex items-center gap-1 text-[7px] font-black leading-tight min-w-0">
+                    <ShiftDot tx={s} colorMap={colorMap} size="xs" />
+                    <span className={cn(
+                      "truncate",
+                      s.status === PaymentStatus.PAID ? "text-green-600 dark:text-green-500" : "text-slate-900 dark:text-white"
+                    )}>
+                      {formatCompactAmount(s.amount)}
+                    </span>
                   </div>
-                </div>
-              )}
+                ))}
+                {startShifts.length > MAX_START_ROWS && (
+                  <div className="text-[7px] font-black text-slate-500 dark:text-slate-400">
+                    +{startShifts.length - MAX_START_ROWS}
+                  </div>
+                )}
+                {coverageShifts.length > 0 && (
+                  <div className="flex items-center gap-0.5 pt-0.5">
+                    {coverageShifts.slice(0, MAX_COVERAGE_RINGS).map(s => (
+                      <ShiftDot key={s.id} tx={s} colorMap={colorMap} size="xs" ring />
+                    ))}
+                    {coverageShifts.length > MAX_COVERAGE_RINGS && (
+                      <span className="text-[6px] font-black text-slate-400 dark:text-slate-500">
+                        +{coverageShifts.length - MAX_COVERAGE_RINGS}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
-              {/* Mobile: count badge */}
-              <div className="lg:hidden flex justify-center mt-auto">
-                {shifts.length > 0 && <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-1.5 rounded-md">{shifts.length}</span>}
+              {/* Mobile: first starting GUARDIA as a compact row — its OWN
+                  amount only (dot + amount, never a sum). Remaining items
+                  collapse into a "+N" badge. Days without a starting guardia
+                  keep the count badge, no amount. */}
+              <div className="lg:hidden flex items-center justify-center gap-1 mt-auto">
+                {firstStartGuardia ? (
+                  <>
+                    <div className="flex items-center gap-1 min-w-0">
+                      <ShiftDot tx={firstStartGuardia} colorMap={colorMap} size="xs" />
+                      <span className={cn(
+                        "text-[8px] font-black leading-tight truncate",
+                        firstStartGuardia.status === PaymentStatus.PAID ? "text-green-600 dark:text-green-500" : "text-slate-900 dark:text-white"
+                      )}>
+                        {formatCompactAmount(firstStartGuardia.amount)}
+                      </span>
+                    </div>
+                    {shifts.length > 1 && (
+                      <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-1.5 rounded-md shrink-0">
+                        +{shifts.length - 1}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  shifts.length > 0 && (
+                    <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-1.5 rounded-md">
+                      {shifts.length}
+                    </span>
+                  )
+                )}
               </div>
 
             </div>
@@ -147,7 +180,7 @@ export function CalendarGrid({
       </div>
 
       {/* Floating tooltip — sigue al cursor en desktop */}
-      {hoverInfo && <ShiftTooltip hoverInfo={hoverInfo} t={t} />}
+      {hoverInfo && <ShiftTooltip hoverInfo={hoverInfo} t={t} institutions={institutions} />}
     </div>
   );
 }

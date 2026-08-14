@@ -1,18 +1,24 @@
 import { useMemo, useState } from 'react';
 import { format, isToday, type Locale } from 'date-fns';
 import { Clock, Plus } from 'lucide-react';
-import { Transaction, PaymentStatus } from '../../types';
+import { Transaction, PaymentStatus, ShiftType, Institution } from '../../types';
 import { cn } from '../../lib/utils';
 import { isHolidayDay, holidayName } from '../../lib/feriados';
+import { getInstitutionColorMap } from '../../lib/institutionColors';
 import { ConfirmModal } from '../ui/ConfirmModal';
-import { formatGuardiaRange, groupShifts } from './calendarUtils';
+import {
+  formatGuardiaRange, formatCoverageDetail, formatCompactAmount,
+  groupShifts, isShiftStart, isShiftCoverage,
+} from './calendarUtils';
 import { ShiftCard } from './ShiftCard';
+import { CoverageShiftCard } from './CoverageShiftCard';
 import { SubItem } from './SubItem';
 import { EmptyState } from './EmptyState';
 
 interface DayDetailsPanelProps {
   selectedDay: Date;
   shifts: Transaction[];
+  institutions: Institution[];
   t: Record<string, string>;
   locale: Locale;
   onOpenForm: (date?: string, tx?: Transaction) => void;
@@ -20,12 +26,21 @@ interface DayDetailsPanelProps {
   isModal?: boolean;
 }
 
-export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, onDelete, isModal }: DayDetailsPanelProps) {
+export function DayDetailsPanel({ selectedDay, shifts, institutions, t, locale, onOpenForm, onDelete, isModal }: DayDetailsPanelProps) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const paid = shifts.filter(s => s.status === PaymentStatus.PAID).reduce((s, t) => s + t.amount, 0);
-  const pending = shifts.filter(s => s.status === PaymentStatus.PENDING).reduce((s, t) => s + t.amount, 0);
 
+  // Badges sum ONLY what starts this day — a coverage guardia (started earlier,
+  // still covering) contributes $0 so the day never shows phantom earnings.
+  const dayStr = format(selectedDay, 'yyyy-MM-dd');
+  const dayStartShifts = shifts.filter(s => isShiftStart(dayStr, s));
+  const paid = dayStartShifts.filter(s => s.status === PaymentStatus.PAID).reduce((sum, s) => sum + s.amount, 0);
+  const pending = dayStartShifts.filter(s => s.status === PaymentStatus.PENDING).reduce((sum, s) => sum + s.amount, 0);
+
+  const colorMap = useMemo(() => getInstitutionColorMap(institutions), [institutions]);
   const grouped = useMemo(() => groupShifts(shifts), [shifts]);
+
+  const institutionColor = (tx: Transaction): string | null =>
+    tx.type === ShiftType.EXTRA ? null : colorMap.get(tx.institution) ?? null;
 
   return (
     <div className={cn(
@@ -55,10 +70,10 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
       {shifts.length > 0 && (
         <div className="flex gap-2 text-[9px] font-black uppercase tracking-wider">
           <span className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg">
-            {t.cobrado}: ${(paid / 1000).toFixed(0)}k
+            {t.cobrado}: {formatCompactAmount(paid)}
           </span>
           <span className="bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 px-2 py-1 rounded-lg">
-            {t.pendiente}: ${(pending / 1000).toFixed(0)}k
+            {t.pendiente}: {formatCompactAmount(pending)}
           </span>
         </div>
       )}
@@ -68,13 +83,35 @@ export function DayDetailsPanel({ selectedDay, shifts, t, locale, onOpenForm, on
           // Guardia group: main card with sub-items nested
           if (group.guardia) {
             const g = group.guardia; const gRange = formatGuardiaRange(g, t.guardiaDe);
+            const gColor = institutionColor(g);
+            if (isShiftCoverage(dayStr, g)) {
+              return (
+                <CoverageShiftCard
+                  key={`g-${gi}`}
+                  tx={g}
+                  detail={formatCoverageDetail(g, t.guardiaDe)}
+                  color={gColor}
+                  t={t}
+                  onOpenForm={onOpenForm}
+                  onDeleteRequest={setConfirmDeleteId}
+                >
+                  {group.subItems.length > 0 && (
+                    <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700">
+                      {group.subItems.map(sub => (
+                        <SubItem key={sub.id} sub={sub} gRange={gRange} color={institutionColor(sub)} hideAmount t={t} locale={locale} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId} />
+                      ))}
+                    </div>
+                  )}
+                </CoverageShiftCard>
+              );
+            }
             return (
               <ShiftCard key={`g-${gi}`} tx={g} range={gRange} notes={g.notes} t={t} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId}>
                 {/* Sub-items nested */}
                 {group.subItems.length > 0 && (
                   <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700">
                     {group.subItems.map(sub => (
-                      <SubItem key={sub.id} sub={sub} gRange={gRange} t={t} locale={locale} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId} />
+                      <SubItem key={sub.id} sub={sub} gRange={gRange} color={institutionColor(sub)} t={t} locale={locale} onOpenForm={onOpenForm} onDeleteRequest={setConfirmDeleteId} />
                     ))}
                   </div>
                 )}

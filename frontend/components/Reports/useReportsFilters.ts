@@ -1,8 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Transaction, ShiftType, PaymentStatus } from '../../types';
 import { startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { translations, type Language } from '../../translations';
 
-type PeriodFilter = 'thisMonth' | 'lastMonth' | 'thisWeek' | 'all' | 'custom';
+export type PeriodFilter = 'thisMonth' | 'lastMonth' | 'thisWeek' | 'all' | 'custom';
+
+/** Sentinel for "no institution filter". Stable internal value; the localized
+ *  label (t.todas) is applied at render time in ReportsFilterBar. */
+export const ALL_INSTITUTIONS = 'ALL';
 
 interface UseReportsFiltersReturn {
   periodFilter: PeriodFilter;
@@ -25,9 +30,10 @@ interface UseReportsFiltersReturn {
   periodLabels: Record<PeriodFilter, string>;
 }
 
-export function useReportsFilters(transactions: Transaction[], language: string): UseReportsFiltersReturn {
+export function useReportsFilters(transactions: Transaction[], language: Language): UseReportsFiltersReturn {
+  const t = translations[language];
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('thisMonth');
-  const [institutionFilter, setInstitutionFilter] = useState<string>('Todas');
+  const [institutionFilter, setInstitutionFilter] = useState<string>(ALL_INSTITUTIONS);
   const [activityFilter, setActivityFilter] = useState<string>('Todos');
   const [showPrintView, setShowPrintView] = useState(false);
 
@@ -49,7 +55,7 @@ export function useReportsFilters(transactions: Transaction[], language: string)
       filtered = filtered.filter(a => { const d = parseISO(a.date); return d >= start && d <= end; });
     }
 
-    if (institutionFilter !== 'Todas') {
+    if (institutionFilter !== ALL_INSTITUTIONS) {
       filtered = filtered.filter(a => a.institution === institutionFilter);
     }
 
@@ -67,7 +73,7 @@ export function useReportsFilters(transactions: Transaction[], language: string)
     return filtered;
   }, [transactions, periodFilter, institutionFilter, activityFilter]);
 
-  const institutions = ['Todas', ...new Set(transactions.map(a => a.institution))];
+  const institutions = [ALL_INSTITUTIONS, ...new Set(transactions.map(a => a.institution))];
 
   const totalGuardias = filteredActividades.filter(a => a.type === ShiftType.ACTIVE).reduce((s, a) => s + a.amount, 0);
   const totalProcedimientos = filteredActividades.filter(a => a.type === ShiftType.CONSULTATION).reduce((s, a) => s + a.amount, 0);
@@ -78,11 +84,11 @@ export function useReportsFilters(transactions: Transaction[], language: string)
   const totalPending = filteredActividades.filter(a => a.status === PaymentStatus.PENDING).reduce((s, a) => s + a.amount, 0);
 
   const periodLabels = {
-    thisMonth: language === 'es' ? 'Este Mes' : 'This Month',
-    lastMonth: language === 'es' ? 'Mes Anterior' : 'Last Month',
-    thisWeek: language === 'es' ? 'Esta Semana' : 'This Week',
-    all: language === 'es' ? 'Todos' : 'All',
-    custom: language === 'es' ? 'Personalizado' : 'Custom',
+    thisMonth: t.esteMes,
+    lastMonth: t.mesAnterior,
+    thisWeek: t.estaSemana,
+    all: t.todos,
+    custom: t.personalizado,
   };
 
   return {

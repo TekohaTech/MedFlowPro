@@ -1,8 +1,12 @@
-import { PaymentStatus, ShiftType, Transaction } from '../../types';
+import { useMemo } from 'react';
+import { format } from 'date-fns';
+import { PaymentStatus, ShiftType, Transaction, Institution } from '../../types';
 import { cn } from '../../lib/utils';
+import { getInstitutionColorMap } from '../../lib/institutionColors';
 import { isHolidayDay, holidayName } from '../../lib/feriados';
-import { formatGuardiaRange, groupShifts } from './calendarUtils';
-import { typeLabel, typeStyle } from './ShiftCardHeader';
+import { formatGuardiaRange, groupShifts, isShiftCoverage } from './calendarUtils';
+import { typeLabel } from './ShiftCardHeader';
+import { ShiftDot } from './ShiftDots';
 import { StatusBadge } from './StatusBadge';
 import { ItemRow } from './ItemRow';
 
@@ -15,6 +19,7 @@ export interface HoverInfo {
 
 interface ShiftTooltipProps {
   hoverInfo: HoverInfo;
+  institutions: Institution[];
   t: Record<string, string>;
 }
 
@@ -37,8 +42,10 @@ function buildGroups(shifts: Transaction[]): TooltipGroup[] {
   }));
 }
 
-export function ShiftTooltip({ hoverInfo, t }: ShiftTooltipProps) {
+export function ShiftTooltip({ hoverInfo, institutions, t }: ShiftTooltipProps) {
   const groups = buildGroups(hoverInfo.shifts);
+  const colorMap = useMemo(() => getInstitutionColorMap(institutions), [institutions]);
+  const dayStr = format(hoverInfo.day, 'yyyy-MM-dd');
 
   return (
     <div
@@ -54,44 +61,56 @@ export function ShiftTooltip({ hoverInfo, t }: ShiftTooltipProps) {
           {holidayName(hoverInfo.day) ?? t.feriadoNacional}
         </p>
       )}
-      {groups.map((group, gi) => (
-        <div key={gi}>
-          {gi > 0 && <div className="my-1.5 border-t border-slate-100 dark:border-slate-700" />}
-          {group.guardia ? (
-            <div>
-              <p className="text-[9px] font-black text-slate-900 dark:text-white truncate mb-1.5 pb-1.5 border-b border-slate-100 dark:border-slate-700">
-                {group.guardia.institution}
-              </p>
-              {/* Fila principal: tipo + monto + estado. El rango va en su propia
-                  línea abajo, COMPLETO (el texto "Guardia de 10h · 05/08 22:00 →
-                  06/08 08:00" no debe cortarse con "…" por compartir fila). */}
-              <div className="flex items-center gap-1.5 text-[8px] leading-snug min-w-0">
-                <div className={cn("w-2 h-2 rounded-full shrink-0", typeStyle(ShiftType.ACTIVE))} />
-                <span className="font-bold text-slate-500 dark:text-slate-400 shrink-0">{typeLabel(ShiftType.ACTIVE, t)}</span>
-                <span className={cn(
-                  "font-black ml-auto whitespace-nowrap shrink-0",
-                  group.guardia.status === PaymentStatus.PAID ? "text-green-600" : "text-slate-900 dark:text-white"
-                )}>
-                  ${group.guardia.amount.toLocaleString('es-AR')}
-                </span>
-                <StatusBadge status={group.guardia.status} t={t} />
-              </div>
-              <p className="mt-0.5 text-[8px] font-bold text-slate-400 dark:text-slate-500 leading-snug break-words">
-                {formatGuardiaRange(group.guardia, t.guardiaDe)}
-              </p>
-              {group.items.length > 0 && (
-                <div className="mt-1.5 space-y-1 pl-2.5 border-l-2 border-slate-200 dark:border-slate-700">
-                  {group.items.map(s => <ItemRow key={s.id} s={s} t={t} />)}
+      {groups.map((group, gi) => {
+        const g = group.guardia;
+        // Coverage rule: a guardia that covers the hovered day shows its
+        // details but NEVER its amount (it was already counted on its start day).
+        const isCoverage = !!g && isShiftCoverage(dayStr, g);
+        return (
+          <div key={gi}>
+            {gi > 0 && <div className="my-1.5 border-t border-slate-100 dark:border-slate-700" />}
+            {g ? (
+              <div>
+                <p className="text-[9px] font-black text-slate-900 dark:text-white truncate mb-1.5 pb-1.5 border-b border-slate-100 dark:border-slate-700">
+                  {g.institution}
+                </p>
+                {/* Fila principal: tipo + monto + estado. El rango va en su propia
+                    línea abajo, COMPLETO (el texto "Guardia de 10h · 05/08 22:00 →
+                    06/08 08:00" no debe cortarse con "…" por compartir fila). */}
+                <div className="flex items-center gap-1.5 text-[8px] leading-snug min-w-0">
+                  <ShiftDot tx={g} colorMap={colorMap} size="xs" />
+                  <span className="font-bold text-slate-500 dark:text-slate-400 shrink-0">{typeLabel(ShiftType.ACTIVE, t)}</span>
+                  {isCoverage ? (
+                    <span className="ml-auto text-[7px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-600 rounded px-1 py-0.5 shrink-0">
+                      {t.cubre}
+                    </span>
+                  ) : (
+                    <span className={cn(
+                      "font-black ml-auto whitespace-nowrap shrink-0",
+                      g.status === PaymentStatus.PAID ? "text-green-600" : "text-slate-900 dark:text-white"
+                    )}>
+                      ${g.amount.toLocaleString('es-AR')}
+                    </span>
+                  )}
+                  <StatusBadge status={g.status} t={t} />
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {group.items.map(s => <ItemRow key={s.id} s={s} t={t} />)}
-            </div>
-          )}
-        </div>
-      ))}
+                <p className="mt-0.5 text-[8px] font-bold text-slate-400 dark:text-slate-500 leading-snug break-words">
+                  {formatGuardiaRange(g, t.guardiaDe)}
+                </p>
+                {group.items.length > 0 && (
+                  <div className="mt-1.5 space-y-1 pl-2.5 border-l-2 border-slate-200 dark:border-slate-700">
+                    {group.items.map(s => <ItemRow key={s.id} s={s} t={t} />)}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {group.items.map(s => <ItemRow key={s.id} s={s} t={t} />)}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Transaction, UserProfile, UserSettings } from '../../types';
+import { Transaction, UserProfile, UserSettings, Institution } from '../../types';
 import { CalendarView } from '../Calendar/CalendarView';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { translations } from '../../translations';
@@ -8,26 +8,25 @@ import { Card } from '../ui/Card';
 import { ReportsPrintView } from './ReportsPrintView';
 import { ReportsFilterBar } from './ReportsFilterBar';
 import { ReportsStatsCards } from './ReportsStatsCards';
-import { useReportsFilters } from './useReportsFilters';
+import { useReportsFilters, ALL_INSTITUTIONS } from './useReportsFilters';
 
 interface ReportsViewProps {
   transactions: Transaction[];
+  institutions: Institution[];
   settings: UserSettings;
   profile: UserProfile;
   onBack: () => void;
   onOpenForm: (date?: string, tx?: Transaction) => void;
-  onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, updates: Partial<Transaction>) => void;
 }
 
-export function ReportsView({ transactions, settings, profile, onBack, onOpenForm, onDelete }: ReportsViewProps) {
+export function ReportsView({ transactions, institutions, settings, profile, onBack, onOpenForm, onDelete }: ReportsViewProps) {
   const t = translations[settings.language];
 
   const {
     periodFilter, institutionFilter, activityFilter, showPrintView,
     setPeriodFilter, setInstitutionFilter, setActivityFilter, setShowPrintView,
-    filteredActividades, institutions,
+    filteredActividades, institutions: institutionNames,
     totalGuardias, totalProcedimientos, totalInterconsultas, totalExtras,
     totalInvoiced, totalPaid, totalPending, periodLabels,
   } = useReportsFilters(transactions, settings.language);
@@ -37,7 +36,7 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
       <div className="fixed inset-0 z-[200] bg-white dark:bg-slate-900 print:bg-white overflow-y-auto print:static print:inset-auto print:overflow-visible print:h-auto">
         <ReportsPrintView
           periodLabel={periodLabels[periodFilter]}
-          institutionLabel={institutionFilter !== 'Todas' ? institutionFilter : ''}
+          institutionLabel={institutionFilter !== ALL_INSTITUTIONS ? institutionFilter : ''}
           userName={profile.name}
           userSpecialty={profile.specialty}
           totalInvoiced={totalInvoiced}
@@ -63,14 +62,14 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
           </Button>
           <div>
             <h1 className={cn("text-2xl lg:text-3xl font-black tracking-tight", settings.darkMode ? "text-white" : "text-slate-900")}>
-              {t.guardias || 'Guardias'}
+              {t.guardias}
             </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">Análisis detallado de tu actividad profesional.</p>
+            <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">{t.analisisDetallado}</p>
           </div>
         </div>
         <Button size="sm" onClick={() => setShowPrintView(true)} className="bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 rounded-2xl">
           <Printer className="w-4 h-4" />
-          <span className="hidden sm:inline">Imprimir PDF</span>
+          <span className="hidden sm:inline">{t.imprimirPDF}</span>
         </Button>
       </header>
 
@@ -78,9 +77,10 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
         periodFilter={periodFilter}
         institutionFilter={institutionFilter}
         activityFilter={activityFilter}
-        institutions={institutions}
+        institutions={institutionNames}
         periodLabels={periodLabels}
-        onPeriodChange={(v) => setPeriodFilter(v as any)}
+        language={settings.language}
+        onPeriodChange={setPeriodFilter}
         onInstitutionChange={setInstitutionFilter}
         onActivityChange={setActivityFilter}
       />
@@ -98,18 +98,18 @@ export function ReportsView({ transactions, settings, profile, onBack, onOpenFor
 
       <Card padding="sm" shadow="xl" className="lg:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-black text-slate-900 dark:text-white">Calendario de Actividades</h3>
-          <Button size="sm" onClick={() => onOpenForm()}>+ Registrar</Button>
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">{t.calendarioActividades}</h3>
+          <Button size="sm" onClick={() => onOpenForm()}>+ {t.registrar}</Button>
         </div>
-        <CalendarView transactions={transactions} onOpenForm={onOpenForm} onDelete={onDelete} settings={settings} embedded />
+        <CalendarView transactions={transactions} institutions={institutions} onOpenForm={onOpenForm} onDelete={onDelete} settings={settings} embedded />
       </Card>
 
       <button onClick={() => setShowPrintView(true)}
         className="w-full py-6 bg-slate-900 dark:bg-slate-800 rounded-2xl text-white shadow-2xl flex flex-col items-center justify-center gap-3 hover:bg-slate-800 dark:hover:bg-slate-700 transition-all">
         <Printer className="w-8 h-8" />
         <div>
-          <p className="font-bold text-lg">Exportar Reporte Completo</p>
-          <p className="text-sm text-slate-400">PDF listo para imprimir • Incluye todos los detalles</p>
+          <p className="font-bold text-lg">{t.exportarReporteCompleto}</p>
+          <p className="text-sm text-slate-400">{t.pdfListoParaImprimir}</p>
         </div>
       </button>
     </div>

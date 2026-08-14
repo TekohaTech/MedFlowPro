@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { api } from './api';
 import { PROFILE_STORAGE_KEY } from '../lib/profileCache';
 
@@ -28,5 +28,31 @@ describe('api.logout', () => {
     expect(localStorage.getItem('access_token')).toBeNull();
     expect(localStorage.getItem('refresh_token')).toBeNull();
     expect(localStorage.getItem(PROFILE_STORAGE_KEY)).toBeNull();
+  });
+});
+
+describe('api.getInstitutions — color normalization', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetchJson(json: unknown) {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => json,
+    }));
+  }
+
+  it('normalizes the color field into the Institution', async () => {
+    stubFetchJson([{ _id: 'i1', name: 'Madariaga', color: '#ef4444', is_active: true }]);
+    const insts = await api.getInstitutions();
+    expect(insts[0].color).toBe('#ef4444');
+    expect(insts[0].name).toBe('Madariaga');
+  });
+
+  it('defaults to null when the API omits color (legacy institution)', async () => {
+    stubFetchJson([{ _id: 'i2', name: 'Clínica', is_active: true }]);
+    const insts = await api.getInstitutions();
+    expect(insts[0].color).toBeNull();
   });
 });

@@ -5,7 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ShiftType, PaymentStatus, type Transaction } from '../../types';
+import { ShiftType, PaymentStatus, type Transaction, type Institution } from '../../types';
 import { DayDetailsPanel } from './DayDetailsPanel';
 
 const t = {
@@ -30,6 +30,7 @@ const t = {
   tipoIntercons: 'Intercons.',
   pagadoBadge: '• Pagado',
   pendienteBadge: '• Pendiente',
+  cubreEsteDia: 'Cubre este día',
   eliminarActividad: 'Eliminar actividad',
   eliminarActividadMsg: '¿Eliminar esta actividad? No se puede deshacer.',
 };
@@ -39,6 +40,7 @@ function renderPanel(day: Date): string {
     <DayDetailsPanel
       selectedDay={day}
       shifts={[]}
+      institutions={[]}
       t={t}
       locale={es}
       onOpenForm={() => {}}
@@ -100,6 +102,7 @@ describe('DayDetailsPanel — persistent "+ Registrar" button (P2)', () => {
         <DayDetailsPanel
           selectedDay={day}
           shifts={shifts}
+          institutions={[]}
           t={t}
           locale={es}
           onOpenForm={(date) => { calls.push(date); }}
@@ -135,6 +138,7 @@ describe('DayDetailsPanel — guardia range readability (P1)', () => {
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[guardia]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -171,6 +175,7 @@ describe('DayDetailsPanel — turn counter counts visible cards, not sub-items',
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[guardia, sub]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -198,6 +203,7 @@ describe('DayDetailsPanel — sub-item overlap guards (P1)', () => {
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[guardia, sub]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -228,6 +234,7 @@ describe('DayDetailsPanel — sub-item overlap guards (P1)', () => {
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[proc]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -252,6 +259,7 @@ describe('DayDetailsPanel — sub-item overlap guards (P1)', () => {
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[guardia, sub]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -278,6 +286,7 @@ describe('DayDetailsPanel — sub-item overlap guards (P1)', () => {
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[guardia, sub]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -316,6 +325,7 @@ describe('DayDetailsPanel — sub-items are never hidden with 2+ guardias same i
       <DayDetailsPanel
         selectedDay={new Date(2026, 7, 5)}
         shifts={[guardia, guardia2, interconsulta]}
+        institutions={[]}
         t={t}
         locale={es}
         onOpenForm={() => {}}
@@ -327,5 +337,93 @@ describe('DayDetailsPanel — sub-items are never hidden with 2+ guardias same i
     // 3 visible cards (2 guardias + 1 interconsulta) → counter shows 3
     expect(html).toContain('3 Turnos registrados');
     expect(html).not.toContain('2 Turnos registrados');
+  });
+});
+
+describe('DayDetailsPanel — coverage contributes $0 (double-counting fix)', () => {
+  const coverageGuardia: Transaction = {
+    id: 'g-cov',
+    institution: 'Otro Sanatorio',
+    type: ShiftType.ACTIVE,
+    date: '2026-08-04',
+    endDate: '2026-08-05',
+    startTime: '08:00',
+    endTime: '08:00',
+    amount: 816007.92,
+    status: PaymentStatus.PENDING,
+  };
+
+  it('sums ONLY start-day amounts in the paid/pending badges', () => {
+    const html = renderToStaticMarkup(
+      <DayDetailsPanel
+        selectedDay={new Date(2026, 7, 5)}
+        shifts={[guardia, coverageGuardia]}
+        institutions={[]}
+        t={t}
+        locale={es}
+        onOpenForm={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    // guardia starts 05/08 ($100k); coverageGuardia covers 05/08 but must add $0
+    expect(html).toContain('Pendiente: $100k');
+    expect(html).not.toContain('Pendiente: $916k');
+  });
+
+  it('shows a coverage card with details but NO amount', () => {
+    const institutions: Institution[] = [
+      { id: 'i2', name: 'Otro Sanatorio', color: '#3b82f6', is_active: true },
+    ];
+    const html = renderToStaticMarkup(
+      <DayDetailsPanel
+        selectedDay={new Date(2026, 7, 5)}
+        shifts={[coverageGuardia]}
+        institutions={institutions}
+        t={t}
+        locale={es}
+        onOpenForm={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(html).toContain('comenzó 04/08 08:00 → 05/08 08:00');
+    expect(html).toContain('Cubre este día');
+    expect(html).not.toContain('816.007,92');
+    // Pure coverage day → badges show $0, proving the amount is never counted twice
+    expect(html).toContain('Pendiente: $0k');
+    // Institution color accent is rendered on the coverage card
+    expect(html).toContain('background-color:#3b82f6');
+  });
+
+  it('hides sub-item amounts nested inside a coverage card', () => {
+    const institutions: Institution[] = [
+      { id: 'i2', name: 'Otro Sanatorio', color: '#3b82f6', is_active: true },
+    ];
+    // The sub-item shares the guardia's START date + institution so groupShifts
+    // nests it inside the coverage card (it was done on the coverage day but is
+    // saved with the guardia's start date).
+    const sub: Transaction = {
+      id: 'sub-cov',
+      institution: 'Otro Sanatorio',
+      type: ShiftType.PASSIVE,
+      date: '2026-08-04',
+      endDate: '2026-08-04',
+      amount: 25000,
+      status: PaymentStatus.PENDING,
+      notes: 'interconsulta cardio',
+    };
+    const html = renderToStaticMarkup(
+      <DayDetailsPanel
+        selectedDay={new Date(2026, 7, 5)}
+        shifts={[coverageGuardia, sub]}
+        institutions={institutions}
+        t={t}
+        locale={es}
+        onOpenForm={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    // The sub-item is visible (with its note) but its amount is hidden
+    expect(html).toContain('interconsulta cardio');
+    expect(html).not.toContain('25.000');
   });
 });

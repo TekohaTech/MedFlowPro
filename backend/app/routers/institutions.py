@@ -53,7 +53,8 @@ async def create_institution(
 
     inactive = await db.institutions.find_one({"userId": user_id, "name": data.name, "is_active": False})
     if inactive:
-        # Reactivar con las nuevas tarifas
+        # Reactivar con las nuevas tarifas (y color, preservando el guardado
+        # cuando el payload no lo incluye — mismo contrato que los rates).
         update_data = {
             "guardia_rate": data.guardia_rate,
             "guardia_semana_rate": data.guardia_semana_rate,
@@ -61,6 +62,7 @@ async def create_institution(
             "guardia_feriado_rate": data.guardia_feriado_rate,
             "procedimiento_rate": data.procedimiento_rate,
             "interconsulta_rate": data.interconsulta_rate,
+            "color": data.color or inactive.get("color"),
             "is_active": True,
             "updated_at": datetime.utcnow(),
         }
@@ -73,6 +75,7 @@ async def create_institution(
     doc = {
         "userId": user_id,
         "name": data.name,
+        "color": data.color,
         "guardia_rate": data.guardia_rate,
         "guardia_semana_rate": data.guardia_semana_rate,
         "guardia_finde_rate": data.guardia_finde_rate,

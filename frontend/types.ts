@@ -125,6 +125,7 @@ export interface Transaction {
 export interface Institution {
   id: string;
   name: string;
+  color?: string | null;
   guardia_rate?: number | null;
   guardia_semana_rate?: number | null;
   guardia_finde_rate?: number | null;

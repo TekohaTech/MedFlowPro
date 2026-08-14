@@ -1,18 +1,20 @@
 import { useState, useMemo } from 'react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { X, Printer } from 'lucide-react';
-import { Transaction, PaymentStatus, UserSettings } from '../../types';
+import { Printer } from 'lucide-react';
+import { Transaction, PaymentStatus, UserSettings, Institution } from '../../types';
 import { cn } from '../../lib/utils';
 import { translations } from '../../translations';
 import { CalendarNav } from './CalendarNav';
 import { CalendarGrid } from './CalendarGrid';
 import { DayDetailsPanel } from './DayDetailsPanel';
+import { MobileDayModal } from './MobileDayModal';
 import { getShiftsForDay, findOverlaps } from './calendarUtils';
 import type { OverlapInfo } from './calendarUtils';
 
 interface CalendarViewProps {
   transactions: Transaction[];
+  institutions: Institution[];
   onOpenForm: (date?: string, tx?: Transaction) => void;
   onDelete: (id: string) => void;
   settings: UserSettings;
@@ -20,7 +22,7 @@ interface CalendarViewProps {
   onViewReports?: () => void;
 }
 
-export function CalendarView({ transactions, onOpenForm, onDelete, settings, embedded, onViewReports }: CalendarViewProps) {
+export function CalendarView({ transactions, institutions, onOpenForm, onDelete, settings, embedded, onViewReports }: CalendarViewProps) {
   const t = translations[settings.language];
   const locale = settings.language === 'es' ? es : enUS;
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -44,6 +46,14 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
     if (window.innerWidth < 1024) {
       setSelectedDay(new Date());
     }
+  };
+
+  // Opening the shift form from the mobile modal closes it first and clears
+  // the ephemeral selection, so the calendar never stays stuck on that day.
+  const handleMobileOpenForm = (date?: string, tx?: Transaction) => {
+    setShowDayModal(false);
+    if (window.innerWidth < 1024) setSelectedDay(new Date());
+    onOpenForm(date, tx);
   };
 
   const monthSummary = useMemo(() => {
@@ -75,8 +85,8 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
           <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">
             ⚠ {monthSummary.overlaps.length} {monthSummary.overlaps.length === 1 ? t.superposicionDetectada : t.superposicionesDetectadas}
           </p>
-          {monthSummary.overlaps.map((o: OverlapInfo, i: number) => (
-            <div key={i} className="text-[9px] text-red-500 dark:text-red-400 leading-relaxed">
+          {monthSummary.overlaps.map((o: OverlapInfo) => (
+            <div key={`${o.a.id}-${o.b.id}`} className="text-[9px] text-red-500 dark:text-red-400 leading-relaxed">
               <span className="font-bold">{o.a.institution}</span> — {o.a.date}
               {o.a.startTime && <span> {o.a.startTime}–{o.a.endTime || '?'}</span>}
               {' ↔ '}
@@ -94,6 +104,7 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
         <div className="lg:col-span-8 space-y-4">
           <CalendarGrid
             transactions={transactions}
+            institutions={institutions}
             currentDate={currentDate}
             selectedDay={selectedDay}
             locale={locale}
@@ -107,6 +118,7 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
             key={selectedDay.toISOString()}
             selectedDay={selectedDay}
             shifts={selectedDayShifts}
+            institutions={institutions}
             t={t}
             locale={locale}
             onOpenForm={onOpenForm}
@@ -116,35 +128,16 @@ export function CalendarView({ transactions, onOpenForm, onDelete, settings, emb
       </div>
 
       {showDayModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[110] flex items-end sm:items-center p-3 sm:p-6 animate-in fade-in duration-300" onClick={(e) => { if (e.target === e.currentTarget) closeDayModal(); }}>
-          <div className="bg-white dark:bg-slate-900 w-full sm:max-w-lg rounded-[2.5rem] h-[80vh] sm:h-auto sm:max-h-[80vh] p-6 lg:p-8 pt-6 flex flex-col animate-in slide-in-from-bottom duration-500 overflow-hidden pb-safe" style={{ paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}>
-            <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mx-auto mb-6" onClick={closeDayModal} />
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-                {format(selectedDay, 'EEEE d', { locale })}
-              </h2>
-              <button onClick={closeDayModal} className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-2xl flex items-center justify-center">
-                <X className="w-6 h-6 text-slate-400" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
-              <DayDetailsPanel
-                selectedDay={selectedDay}
-                shifts={selectedDayShifts}
-                t={t}
-                locale={locale}
-                onOpenForm={(date, tx) => {
-                  setShowDayModal(false);
-                  if (window.innerWidth < 1024) setSelectedDay(new Date());
-                  onOpenForm(date, tx);
-                }}
-                onDelete={onDelete}
-                isModal
-              />
-            </div>
-          </div>
-        </div>
+        <MobileDayModal
+          selectedDay={selectedDay}
+          shifts={selectedDayShifts}
+          institutions={institutions}
+          t={t}
+          locale={locale}
+          onOpenForm={handleMobileOpenForm}
+          onDelete={onDelete}
+          onClose={closeDayModal}
+        />
       )}
     </>
   );
