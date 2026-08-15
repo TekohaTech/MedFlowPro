@@ -8,6 +8,7 @@ import { cn } from '../../lib/utils';
 import { isHolidayDay, holidayName } from '../../lib/feriados';
 import { getInstitutionColorMap } from '../../lib/institutionColors';
 import { getShiftsForDay, isShiftStart } from './calendarUtils';
+import { buildDayLines, computeLineSlots, lineKey } from './durationLineSlots';
 import { DurationLines, type DurationLineSpec } from './DurationLines';
 import { ShiftTooltip, type HoverInfo } from './ShiftTooltip';
 
@@ -27,65 +28,6 @@ interface CalendarGridProps {
 // lines (end marker line + dot line). Mobile shows a count badge of the
 // guardias starting today.
 
-interface DayLine {
-  institution: string;
-  startsToday: boolean;
-  endsToday: boolean;
-  /** Identity for slot persistence: the guardia with the MIN start date in
-      that line — a continuing guardia keeps the SAME key across days. */
-  leaderId: string;
-}
-
-// Shared per-day line builder, used by BOTH the slot simulation (useMemo) and
-// the day render — the visual order can never desync from the slot model.
-// lineKey = `${institution}::${leaderId}`: the split line of the ENDING
-// guardia keeps the key it had the day before (same leader), so its slot
-// persists; the STARTING guardia is a different leader → takes the first free
-// slot. Non-split days keep ONE line whose leader is the earliest-starting
-// ACTIVE guardia covering the day.
-function buildDayLines(dayStr: string, shifts: Transaction[]): DayLine[] {
-  const activeShifts = shifts.filter(s => s.type === ShiftType.ACTIVE);
-  const startTxs = activeShifts.filter(s => isShiftStart(dayStr, s)); // starts today
-  const endTxs = activeShifts.filter(s => s.endDate === dayStr);      // ends today
-  // Ordering: EARLIEST start date of the ACTIVE guardia covering this day, so
-  // a guardia starting mid-way through another's duration renders BELOW the
-  // ongoing one — consistently across every day they co-cover.
-  const minStartByInstitution = new Map<string, string>();
-  for (const s of activeShifts) {
-    const cur = minStartByInstitution.get(s.institution);
-    if (!cur || s.date < cur) minStartByInstitution.set(s.institution, s.date);
-  }
-  const ordered = [...minStartByInstitution.entries()]
-    .sort((a, b) => a[1].localeCompare(b[1]))
-    .map(([institution]) => institution);
-  const leader = (txs: Transaction[]) =>
-    [...txs].sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))[0];
-  const lines: DayLine[] = [];
-  for (const institution of ordered) {
-    const st = startTxs.filter(s => s.institution === institution);
-    const et = endTxs.filter(s => s.institution === institution);
-    // A guardia that ends today WITHOUT starting today (multi-day reaching its
-    // end)…
-    const multiEnd = et.some(s => !isShiftStart(dayStr, s));
-    // …or starts today WITHOUT ending today (continues tomorrow).
-    const multiStart = st.some(s => s.endDate !== dayStr);
-    // Two DIFFERENT guardias touch today (one ends, another starts) → split
-    // into TWO lines so the fusion never looks like a 1-day guardia.
-    const split = (multiEnd && st.length > 0) || (multiStart && et.length > 0);
-    if (split) {
-      // The ENDING line (A): segment + end marker, NO dot.
-      lines.push({ institution, startsToday: false, endsToday: true, leaderId: leader(et).id });
-      // The STARTING line (B): dot (+ amount); end marker ONLY when B itself
-      // is a 1-day guardia.
-      lines.push({ institution, startsToday: true, endsToday: st.some(s => s.endDate === dayStr), leaderId: leader(st).id });
-    } else {
-      const active = activeShifts.filter(s => s.institution === institution);
-      lines.push({ institution, startsToday: st.length > 0, endsToday: et.length > 0, leaderId: leader(active).id });
-    }
-  }
-  return lines;
-}
-
 export function CalendarGrid({
   transactions, institutions, currentDate, selectedDay, locale, t, onDayClick,
 }: CalendarGridProps) {
@@ -97,32 +39,13 @@ export function CalendarGrid({
   const calendarDays = useMemo(() => eachDayOfInterval({ start: startDate, end: endDate }), [startDate, endDate]);
   const colorMap = useMemo(() => getInstitutionColorMap(institutions), [institutions]);
 
-  // Persistent line slots: simulate the month day-by-day with the SAME builder
-  // used by the render. Existing lines re-occupy their slot every day; a NEW
-  // line takes the FIRST FREE slot (below everything active that day). Lines
-  // that end simply stop occupying their slot — existing lines NEVER move.
-  const lineSlots = useMemo(() => {
-    const slots = new Map<string, number>();
-    for (const day of calendarDays) {
-      const dayStr = format(day, 'yyyy-MM-dd');
-      const lines = buildDayLines(dayStr, getShiftsForDay(day, transactions));
-      const occupied = new Set<number>();
-      for (const line of lines) {
-        const s = slots.get(`${line.institution}::${line.leaderId}`);
-        if (s !== undefined) occupied.add(s);
-      }
-      for (const line of lines) {
-        const key = `${line.institution}::${line.leaderId}`;
-        if (!slots.has(key)) {
-          let s = 1;
-          while (occupied.has(s)) s++;
-          slots.set(key, s);
-          occupied.add(s);
-        }
-      }
-    }
-    return slots;
-  }, [calendarDays, transactions]);
+  // Persistent line slots — pure simulation, see durationLineSlots.ts: existing
+  // lines re-occupy their slot every day, new lines take the first free slot,
+  // ended lines release it. Existing lines NEVER move.
+  const lineSlots = useMemo(
+    () => computeLineSlots(calendarDays, transactions),
+    [calendarDays, transactions],
+  );
 
   const [hoverInfo, setHoverInfo] = useState<HoverInfo | null>(null);
 
@@ -159,16 +82,20 @@ export function CalendarGrid({
             if (s.type !== ShiftType.ACTIVE) continue;
             if (!startShiftByInstitution.has(s.institution)) startShiftByInstitution.set(s.institution, s);
           }
-          // Duration lines: same visual builder as the slot simulation — each
-          // line carries its persistent slot (fallback: visual order) and is
-          // rendered sorted by slot, so a line keeps its row for its whole
-          // life instead of jumping up when the lines above it end.
+          // Duration lines: built with the SAME builder as the slot simulation
+          // (durationLineSlots.ts) — the simulation runs over the exact same
+          // days and transactions, so every rendered line is GUARANTEED a slot.
+          // A miss is a bug: fail loudly instead of silently collapsing to
+          // visual order (which would reintroduce the line-jump corruption).
           const lines = buildDayLines(dayStr, shifts);
           const renderedLines: DurationLineSpec[] = lines
-            .map((line, index) => ({
-              ...line,
-              slot: lineSlots.get(`${line.institution}::${line.leaderId}`) ?? index + 1,
-            }))
+            .map((line) => {
+              const slot = lineSlots.get(lineKey(line));
+              if (slot === undefined) {
+                throw new Error(`Missing slot for line ${lineKey(line)}`);
+              }
+              return { ...line, slot };
+            })
             .sort((a, b) => a.slot - b.slot);
           const isCurrentMonth = isSameMonth(day, monthStart);
           const isSelected = isSameDay(day, selectedDay);

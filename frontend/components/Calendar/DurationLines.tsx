@@ -42,9 +42,9 @@ interface DurationLinesProps {
 // end marker marks "termina acá". When one guardia ENDS the same day another
 // one STARTS (same institution), the caller renders TWO distinct lines — the
 // ending one (segment + marker, no dot) and the starting one (dot + amount +
-// segment). Vertical spacing comes from SLOTS rendered POSITIONALLY: the
-// container has a 2px flex gap and renders ONE child per slot — the real line
-// row for occupied slots, an invisible 8px SPACER (h-2) for empty ones. A line
+// segment). Vertical spacing is POSITIONAL SLOTS: the container has a 2px flex
+// gap and renders ONE child per slot — a line row for occupied slots, an
+// invisible h-2 spacer for empty ones. A line
 // in slot s always has EXACTLY s-1 preceding children (8px each + 2px gap), so
 // its absolute Y position is (s-1)*10px from the container top — IDENTICAL
 // across days whether the slots above it are real lines or gaps. A line that

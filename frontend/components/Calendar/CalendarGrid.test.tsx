@@ -532,13 +532,17 @@ describe('CalendarGrid — duration lines (mobile + desktop)', () => {
     expect(html).toContain('data-testid="duration-lines"');
   });
 
-  it('a continuing guardia keeps its slot across days (line does NOT jump up)', () => {
+  it('a continuing guardia keeps its slot across days (render: the spacer holds its row)', () => {
+    // The SLOT MAP itself (B keeping slot 2, A releasing slot 1) is asserted
+    // directly in durationLineSlots.test.ts — here we only check the RENDER:
+    // B alone at slot 2 renders exactly 1 real line WITH an invisible h-2
+    // spacer at slot 1 before it (its absolute Y position never changes — no
+    // jump up to row 1 once A ended).
     const html = renderGrid(2026, 7, [
       guardia({ id: 'a', date: '2026-08-02', endDate: '2026-08-05' }),
       guardia({ id: 'b', date: '2026-08-05', endDate: '2026-08-08' }),
     ], [makeInstitution({ color: '#ef4444' })]);
-    // Containers on 02/08..08/08 (7 days with coverage) — in order: day02=1st,
-    // day03=2nd, day04=3rd, day05=4th, day06=5th, day07=6th, day08=7th.
+    // Containers on 02/08..08/08 — in order: day02=1st … day08=7th.
     expect(html.match(/data-testid="duration-lines"/g)).toHaveLength(7);
     const indices: number[] = [];
     let from = 0;
@@ -546,22 +550,9 @@ describe('CalendarGrid — duration lines (mobile + desktop)', () => {
       indices.push(html.indexOf('data-testid="duration-lines"', from));
       from = indices[i] + 1;
     }
-    const day5 = html.slice(indices[3], indices[4]);
     const day6 = html.slice(indices[4], indices[5]);
     const day7 = html.slice(indices[5], indices[6]);
     const day8 = html.slice(indices[6]);
-    // Day 05/08: A ends + B starts (same institution) → TWO real lines: the
-    // ENDING line at slot 1 (no dot, end marker) and the STARTING line at slot
-    // 2 (dot, no marker — B continues). Both slots occupied → NO gap.
-    expect(day5.match(/data-testid="duration-line"[^>]*>/g)).toHaveLength(2);
-    expect(day5).not.toContain('data-testid="duration-slot-gap"');
-    const day5Dots = day5.match(/data-testid="duration-dot"[^>]*>/g) ?? [];
-    expect(day5Dots).toHaveLength(1); // only B starts today
-    expect(day5.match(/data-testid="duration-end-marker"/g)).toHaveLength(1); // only A ends
-    expect(day5.match(/class="h-\[3px\] flex-1 min-w-0 mr-1 rounded-r-full"/g)).toHaveLength(1); // A's segment only
-    // Days 06/07: B continues alone at slot 2 — EXACTLY ONE line AND exactly
-    // ONE invisible spacer at slot 1 BEFORE it: the line keeps its absolute Y
-    // position (does NOT jump up to row 1 once A ended). No dot, no marker.
     for (const day of [day6, day7]) {
       expect(day.match(/data-testid="duration-line"[^>]*>/g)).toHaveLength(1);
       expect(day.match(/data-testid="duration-slot-gap"/g)).toHaveLength(1);
@@ -573,22 +564,19 @@ describe('CalendarGrid — duration lines (mobile + desktop)', () => {
       expect(day).not.toContain('data-testid="duration-dot"');
       expect(day).not.toContain('data-testid="duration-end-marker"');
     }
-    // Day 08/08: B ends — still slot 2 (spacer above it), now with the end
-    // marker. The line never moved its whole life.
+    // Day 08/08: B ends — still slot 2 (spacer above), now with the end marker.
     expect(day8.match(/data-testid="duration-line"[^>]*>/g)).toHaveLength(1);
     expect(day8.match(/data-testid="duration-slot-gap"/g)).toHaveLength(1);
     expect(day8).toContain('data-testid="duration-end-marker"');
   });
 
-  it('a line whose predecessor never existed starts at slot 1', () => {
+  it('a line whose predecessor never existed starts at slot 1 (render: no spacer anywhere)', () => {
     const html = renderGrid(2026, 7, [
       guardia({ id: 'b', date: '2026-08-05', endDate: '2026-08-08' }),
     ], [makeInstitution({ color: '#ef4444' })]);
-    // Containers on 05/08..08/08 (4 days).
+    // 4 containers (05/08..08/08): exactly one line each, and NO spacer at all
+    // — slot 1 has no preceding children by definition.
     expect(html.match(/data-testid="duration-lines"/g)).toHaveLength(4);
-    // Every day renders EXACTLY ONE line at slot 1 — no spacer anywhere,
-    // because no other line ever existed above it (slot 1 has no preceding
-    // children by definition).
     expect(html.match(/data-testid="duration-line"[^>]*>/g)).toHaveLength(4);
     expect(html.match(/data-testid="duration-slot-gap"/g) ?? []).toHaveLength(0);
     // Start day: dot; end day: marker (the line is a single multi-day guardia).

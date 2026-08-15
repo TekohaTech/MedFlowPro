@@ -79,3 +79,6 @@ npm-debug.log*
 mongod_data/frontend/node_modules/
 frontend/node_modules/
 .git-broken/
+
+# Temporary Vite debug mount (never commit)
+frontend/dev-shot.html
