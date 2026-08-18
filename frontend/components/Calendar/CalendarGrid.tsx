@@ -7,7 +7,7 @@ import { Transaction, Institution, ShiftType } from '../../types';
 import { cn } from '../../lib/utils';
 import { isHolidayDay, holidayName } from '../../lib/feriados';
 import { getInstitutionColorMap } from '../../lib/institutionColors';
-import { getShiftsForDay, isShiftStart } from './calendarUtils';
+import { getShiftsForDay, isShiftStart, formatSrOnlyDurationSummary } from './calendarUtils';
 import { buildDayLines, computeLineSlots, lineKey } from './durationLineSlots';
 import { DurationLines, type DurationLineSpec } from './DurationLines';
 import { ShiftTooltip, type HoverInfo } from './ShiftTooltip';
@@ -126,6 +126,13 @@ export function CalendarGrid({
                 </span>
               </div>
 
+              {/* Screen-reader-only guardia summary — the colored lines are
+                  aria-hidden (decorative) and the tooltip is mouse-only, so
+                  desktop SR users would lose all duration info without this. */}
+              {lines.length > 0 && (
+                <span className="sr-only">{formatSrOnlyDurationSummary(lines)}</span>
+              )}
+
               <DurationLines
                 lines={renderedLines}
                 colorMap={colorMap}
@@ -141,9 +148,12 @@ export function CalendarGrid({
 
               {/* Mobile: compact badge with the COUNT of guardias starting
                   today — amounts live in the day panel. Coverage-only days
-                  rely on the duration line, no badge. */}
+                  rely on the duration line, no badge. ARIA-HIDDEN: the bare
+                  number is decorative (and an aria-label on a role-less span
+                  is not reliably announced); screen-reader users get the full
+                  info from the sr-only summary above — on desktop AND mobile. */}
               {startCount > 0 && (
-                <div className="lg:hidden flex items-center justify-center gap-1 mt-auto">
+                <div aria-hidden className="lg:hidden flex items-center justify-center gap-1 mt-auto">
                   <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-1.5 rounded-md shrink-0">
                     {startCount}
                   </span>

@@ -165,6 +165,7 @@ export const translations = {
     diaSemana: "semana",
     diaFinde: "fin de semana",
     diaFeriado: "feriado",
+    desgloseGuardia: "Esta guardia abarca:",
     // ShiftForm labels (GuardiaFields / ShiftModeToggle / ShiftForm)
     horas: "Horas",
     dolarHora: "$/Hora",
@@ -248,6 +249,27 @@ export const translations = {
     estaSemana: "Esta Semana",
     personalizado: "Personalizado",
     extras: "Extras",
+    // ComparisonTable
+    comparativaMensual: "Comparativa Mensual",
+    sinDatosAnio: "Sin datos para {year}",
+    mesLabel: "Mes",
+    totalLabel: "Total",
+    gdia: "Gdia",
+    proc: "Proc",
+    inter: "Inter",
+    cobradoCol: "Cobrado",
+    pend: "Pend.",
+    subida: "Subida",
+    bajada: "Bajada",
+    sinCambio: "Sin cambio",
+    totalAnio: "Total {year}",
+    // StatsView
+    ingresosTotales: "Ingresos Totales",
+    pendienteLabel: "Pendiente",
+    mesDel: "del mes",
+    errorStats: "Error al cargar estadísticas",
+    recargar: "Recargar",
+    volver: "← Volver",
   },
   en: {
     inicio: "Home",
@@ -414,6 +436,7 @@ export const translations = {
     diaSemana: "weekday",
     diaFinde: "weekend",
     diaFeriado: "holiday",
+    desgloseGuardia: "This shift covers:",
     // ShiftForm labels (GuardiaFields / ShiftModeToggle / ShiftForm)
     horas: "Hours",
     dolarHora: "$/Hour",
@@ -497,7 +520,33 @@ export const translations = {
     estaSemana: "This Week",
     personalizado: "Custom",
     extras: "Extras",
+    // ComparisonTable
+    comparativaMensual: "Monthly Comparison",
+    sinDatosAnio: "No data for {year}",
+    mesLabel: "Month",
+    totalLabel: "Total",
+    gdia: "Shifts",
+    proc: "Proc",
+    inter: "Inter",
+    cobradoCol: "Collected",
+    pend: "Pend.",
+    subida: "Up",
+    bajada: "Down",
+    sinCambio: "No change",
+    totalAnio: "Total {year}",
+    // StatsView
+    ingresosTotales: "Total Earnings",
+    pendienteLabel: "Pending",
+    mesDel: "for this month",
+    errorStats: "Error loading statistics",
+    recargar: "Refresh",
+    volver: "← Back",
   }
+};
+
+export const MONTH_NAMES: Record<Language, string[]> = {
+  es: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+  en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
 };
 
 export type Language = 'es' | 'en';

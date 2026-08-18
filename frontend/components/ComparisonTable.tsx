@@ -1,58 +1,32 @@
-import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Minus, BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { MonthlyRow } from '../types';
-import { api } from '../services/api';
+import { useState } from 'react';
+import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
+import { translations, MONTH_NAMES, type Language } from '../translations';
+import { useMonthlyComparison } from '../hooks/useMonthlyComparison';
+import { Delta } from './Delta';
 import { cn } from '../lib/utils';
 
-const MONTH_NAMES: Record<string, string> = {
-  '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',
-  '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',
-  '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre',
-};
+const stickyCol = "sticky left-0 bg-white dark:bg-slate-800 z-10 relative after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-slate-200 dark:after:bg-slate-600";
 
-function monthLabel(month: string): string {
+function monthLabel(month: string, language: Language): string {
   const [, m] = month.split('-');
-  return MONTH_NAMES[m] || month;
+  const idx = parseInt(m, 10) - 1;
+  return MONTH_NAMES[language][idx] || month;
 }
 
-function Delta({ value }: { value: number | null }) {
-  if (value === null) return <span className="text-slate-300 dark:text-slate-600 text-[10px]">—</span>;
-  if (value > 0) return (
-    <span className="text-green-600 dark:text-green-400 text-[10px] font-bold flex items-center gap-1">
-      <TrendingUp className="w-3 h-3" />+{value.toFixed(0)}%
-    </span>
-  );
-  if (value < 0) return (
-    <span className="text-red-500 dark:text-red-400 text-[10px] font-bold flex items-center gap-1">
-      <TrendingDown className="w-3 h-3" />{value.toFixed(0)}%
-    </span>
-  );
-  return (
-    <span className="text-slate-400 text-[10px] flex items-center gap-1">
-      <Minus className="w-3 h-3" />0%
-    </span>
-  );
+interface ComparisonTableProps {
+  language: Language;
 }
 
-export function ComparisonTable() {
+export function ComparisonTable({ language }: ComparisonTableProps) {
+  const t = translations[language];
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [rows, setRows] = useState<MonthlyRow[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    api.getMonthlyComparison(year)
-      .then(setRows)
-      .catch(() => setRows([]))
-      .finally(() => setLoading(false));
-  }, [year]);
+  const { rows, loading } = useMonthlyComparison(year);
 
   const yearTotal = rows.reduce((s, r) => s + r.total_ingresos, 0);
   const yearCobrado = rows.reduce((s, r) => s + r.cobrado, 0);
   const yearPendiente = rows.reduce((s, r) => s + r.pendiente, 0);
 
-  // Calcular delta vs mes anterior
   const rowsWithDelta = rows.map((r, i) => ({
     ...r,
     delta: i > 0 && rows[i - 1].total_ingresos > 0
@@ -66,7 +40,7 @@ export function ComparisonTable() {
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-blue-500" />
           <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Comparativa Mensual
+            {t.comparativaMensual}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -83,31 +57,30 @@ export function ComparisonTable() {
       </div>
 
       {loading ? (
-        <div className="py-8 text-center text-[10px] text-slate-400 font-bold">Cargando...</div>
+        <div className="py-8 text-center text-[10px] text-slate-400 font-bold">{t.cargando}</div>
       ) : rows.length === 0 ? (
-        <div className="py-8 text-center text-[10px] text-slate-400 font-bold">Sin datos para {year}</div>
+        <div className="py-8 text-center text-[10px] text-slate-400 font-bold">{t.sinDatosAnio.replace('{year}', String(year))}</div>
       ) : (
         <>
-          {/* Tabla horizontal scroll en mobile */}
           <div className="overflow-x-auto -mx-4 px-4">
             <table className="w-full min-w-[600px] text-[10px]">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="text-left py-2 pr-3 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider sticky left-0 bg-white dark:bg-slate-800 z-10 relative after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-slate-200 dark:after:bg-slate-600">Mes</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Gdia</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Proc</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Inter</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Extra</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Cobrado</th>
-                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pend.</th>
+                  <th className={cn("text-left py-2 pr-3 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider", stickyCol)}>{t.mesLabel}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.totalLabel}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.gdia}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.proc}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.inter}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.extras}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.cobradoCol}</th>
+                  <th className="text-right py-2 px-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t.pend}</th>
                   <th className="text-right py-2 pl-2 font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Δ%</th>
                 </tr>
               </thead>
               <tbody>
                 {rowsWithDelta.map((r) => (
                   <tr key={r.month} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="py-2.5 pr-3 font-bold text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-800 z-10 relative after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-slate-200 dark:after:bg-slate-600">{monthLabel(r.month)}</td>
+                    <td className={cn("py-2.5 pr-3 font-bold text-slate-900 dark:text-white", stickyCol)}>{monthLabel(r.month, language)}</td>
                     <td className="text-right py-2.5 px-2 font-black text-slate-900 dark:text-white">${r.total_ingresos.toLocaleString('es-AR')}</td>
                     <td className="text-right py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300">{r.total_guardias}</td>
                     <td className="text-right py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300">{r.total_procedimientos}</td>
@@ -121,9 +94,9 @@ export function ComparisonTable() {
               </tbody>
               <tfoot>
                 <tr className="border-t-2 border-slate-300 dark:border-slate-600">
-                  <td className="py-2.5 pr-3 font-black text-slate-900 dark:text-white sticky left-0 bg-white dark:bg-slate-800 relative after:absolute after:inset-y-0 after:right-0 after:w-px after:bg-slate-200 dark:after:bg-slate-600">Total {year}</td>
+                  <td className={cn("py-2.5 pr-3 font-black text-slate-900 dark:text-white", stickyCol)}>{t.totalAnio.replace('{year}', String(year))}</td>
                   <td className="text-right py-2.5 px-2 font-black text-blue-600 dark:text-blue-400">${yearTotal.toLocaleString('es-AR')}</td>
-                  <td className="text-right py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300" colSpan={3} />
+                  <td className="text-right py-2.5 px-2 font-bold text-slate-700 dark:text-slate-300" colSpan={4} />
                   <td className="text-right py-2.5 px-2 font-black text-green-600 dark:text-green-400">${yearCobrado.toLocaleString('es-AR')}</td>
                   <td className="text-right py-2.5 px-2 font-black text-orange-500 dark:text-orange-400">${yearPendiente.toLocaleString('es-AR')}</td>
                   <td className="text-right py-2.5 pl-2" />
@@ -133,9 +106,9 @@ export function ComparisonTable() {
           </div>
 
           <div className="flex items-center gap-4 text-[10px] text-slate-400 font-bold pt-1">
-            <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3 text-green-500" /> Subida</span>
-            <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3 text-red-500" /> Bajada</span>
-            <span className="flex items-center gap-1"><Minus className="w-3 h-3" /> Sin cambio</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 text-green-500">▲</span> {t.subida}</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 text-red-500">▼</span> {t.bajada}</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3">—</span> {t.sinCambio}</span>
           </div>
         </>
       )}

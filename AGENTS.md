@@ -32,3 +32,27 @@
 - No `confirm()` → custom modal.
 - No inline translations → shared `translations.ts`.
 - Use `cn()` for conditional/merged Tailwind classes; static class strings are fine.
+
+## Calendar UI — Approved Visual Language (DO NOT regress)
+
+### Duration Lines (per cell, per institution)
+- **Dot + amount + segment** on start days: colored circle (w-2 h-2) + amount (`hidden lg:inline text-[7px]`) + flex segment (`h-[3px] flex-1 rounded-r-full` when endsToday).
+- **Segment only** on coverage-only days (no dot, no amount).
+- **Segment + vertical end marker** on the end day: segment stops short (`mr-1 rounded-r-full`) + thin marker (`w-[2px] h-2 rounded-full`).
+- Amount is intentionally CSS-hidden on mobile (`hidden lg:inline`) — mobile uses a `lg:hidden` count badge instead.
+- Z-index: `relative z-[5]` so lines paint ABOVE the gap-px grid background.
+- End marker is **per guardia** (`endDate === dayStr`), not per institution.
+- **Persistent slots**: every line keeps its vertical position across days via positional spacers (`h-2` children). Lines NEVER jump. Logic lives in `durationLineSlots.ts` (pure module).
+- Known limitation (documented + pinned): 1-day + multi-day guardia of the SAME institution starting the SAME day can collide (shared anchor key).
+
+### Grid Lines
+- Gap-px (`gap-px bg-slate-200`) — background shows through 1px gaps, NOT borders on each cell. Duration lines paint over the background.
+- Cells paint their own opaque background (`bg-white dark:bg-slate-800`).
+
+### Count Badge (Mobile)
+- `lg:hidden` — visible only on mobile. Shows count of starting ACTIVE guardias.
+- Now `aria-hidden` — decorative; SR users get info from the sr-only per-cell summary.
+
+### Guardia Breakdown Popover
+- Shows formatting breakdown: `48h × $17.000 (semana) + 24h × $17.000,33 (fin de semana)`.
+- Highlight treatment needed (see pending styling work).

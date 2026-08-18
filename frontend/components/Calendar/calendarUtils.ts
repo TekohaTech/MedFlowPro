@@ -61,6 +61,38 @@ export function formatCompactAmount(amount: number): string {
   return `$${(amount / 1000).toFixed(0)}k`;
 }
 
+export interface DurationLineInfo {
+  institution: string;
+  startsToday: boolean;
+  endsToday: boolean;
+}
+
+// Screen-reader-only summary of a day's guardia-duration lines: the colored
+// lines are aria-hidden (decorative-only), so SR users must get the info as
+// text. Singular for ONE line: "Guardia activa: Madariaga (comienza hoy)".
+// Otherwise "Guardias activas: …" with per-line flags — " (termina hoy)" when
+// the guardia ends today, " (comienza hoy)" when it starts today, " (comienza
+// y termina hoy)" for a 1-day guardia. Neutral Spanish; the app's default
+// locale is es-AR. Amounts are intentionally omitted: the day panel (reachable
+// by keyboard) shows values.
+export function formatSrOnlyDurationSummary(lines: readonly DurationLineInfo[]): string {
+  if (lines.length === 0) return '';
+  const parts = lines.map((l) => {
+    const flag = l.startsToday && l.endsToday
+      ? ' (comienza y termina hoy)'
+      : l.endsToday
+        ? ' (termina hoy)'
+        : l.startsToday
+          ? ' (comienza hoy)'
+          : '';
+    return `${l.institution}${flag}`;
+  });
+  if (parts.length === 1) {
+    return `Guardia activa: ${parts[0]}`;
+  }
+  return `Guardias activas: ${parts.join(', ')}`;
+}
+
 // A transaction STARTS on the given day when its own date matches it.
 export function isShiftStart(dayStr: string, tx: Transaction): boolean {
   return tx.date === dayStr;

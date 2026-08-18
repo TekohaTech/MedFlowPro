@@ -32,12 +32,16 @@ describe('RateInfo — flat-rate notice', () => {
 describe('RateInfo — day-type breakdown', () => {
   it('renders the mixed line with es-AR formatting and translated labels', () => {
     const html = render({ rateBreakdown: mixedSegments });
-    expect(html).toContain('24h × $5.000 (semana) + 24h × $9.000 (feriado) + 24h × $8.000 (fin de semana)');
+    expect(html).toContain('24h × $5.000 (semana)');
+    expect(html).toContain('24h × $9.000 (feriado)');
+    expect(html).toContain('24h × $8.000 (fin de semana)');
   });
 
   it('renders the mixed line with English labels', () => {
     const html = render({ rateBreakdown: mixedSegments, language: 'en' });
-    expect(html).toContain('24h × $5.000 (weekday) + 24h × $9.000 (holiday) + 24h × $8.000 (weekend)');
+    expect(html).toContain('24h × $5.000 (weekday)');
+    expect(html).toContain('24h × $9.000 (holiday)');
+    expect(html).toContain('24h × $8.000 (weekend)');
   });
 
   it('renders the weekend segment when the finde rate comes from the legacy fallback (finde == semana)', () => {
@@ -51,8 +55,9 @@ describe('RateInfo — day-type breakdown', () => {
         { hours: 24, rate: 9000, labelKey: 'diaFeriado' },
       ],
     });
+    expect(html).toContain('24h × $5.000 (semana)');
     expect(html).toContain('24h × $5.000 (fin de semana)');
-    expect(html).toContain('24h × $5.000 (semana) + 24h × $5.000 (fin de semana) + 24h × $9.000 (feriado)');
+    expect(html).toContain('24h × $9.000 (feriado)');
   });
 });
 

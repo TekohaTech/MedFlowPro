@@ -615,6 +615,29 @@ describe('CalendarGrid — duration lines (mobile + desktop)', () => {
       expect(day).not.toContain('$99k'); // unknown-institution line never draws an amount
     }
   });
+
+  it('renders a screen-reader-only guardia summary (a11y: desktop info is visual-only otherwise)', () => {
+    const html = renderGrid(2026, 7, [
+      guardia({ id: 'a', date: '2026-08-02', endDate: '2026-08-05' }),
+    ], [makeInstitution({ color: '#ef4444' })]);
+    // Start day 02/08: ONE line → SINGULAR summary naming the institution.
+    expect(html).toContain('Guardia activa: Madariaga (comienza hoy)');
+    // Coverage days 03/08 and 04/08: singular summary WITHOUT any flag.
+    expect(html.match(/Guardia activa: Madariaga(?! \()/g)).toHaveLength(2);
+    // End day 05/08: "termina hoy". One sr-only span per day with a line (4).
+    expect(html.match(/Guardia activa: Madariaga \(termina hoy\)/g)).toHaveLength(1);
+    expect(html.match(/class="sr-only"/g)).toHaveLength(4);
+    // STRUCTURE: the sr-only summary is a SIBLING of the aria-hidden duration
+    // lines (it must NEVER live inside that container or SR users lose it).
+    const firstSrOnly = html.indexOf('class="sr-only"');
+    const durationContainer = html.indexOf('data-testid="duration-lines"');
+    expect(firstSrOnly).toBeGreaterThan(-1);
+    expect(durationContainer).toBeGreaterThan(firstSrOnly);
+    // The mobile count badge is decorative (aria-hidden): SR users already get
+    // the guardia info from the summary — an aria-label on a role-less span is
+    // not reliably announced by screen readers.
+    expect(html).toContain('aria-hidden="true" class="lg:hidden');
+  });
 });
 
 describe('CalendarGrid — mobile count badge', () => {

@@ -1,6 +1,3 @@
-import { useState, useEffect } from 'react';
-import { ActividadStats } from '../types';
-import { api } from '../services/api';
 import { 
   TrendingUp, 
   Wallet, 
@@ -11,78 +8,32 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { ComparisonTable } from './ComparisonTable';
+import { translations, type Language } from '../translations';
+import { useStats } from '../hooks/useStats';
 
 interface StatsViewProps {
   onBack: () => void;
-  settings: { language: 'es' | 'en'; darkMode: boolean; currency: string };
+  settings: { language: Language; darkMode: boolean; currency: string };
 }
 
-const translations = {
-  es: {
-    titulo: 'Estadísticas',
-    ingresosTotales: 'Ingresos Totales',
-    cobrado: 'Cobrado',
-    pendiente: 'Pendiente',
-    guardias: 'Guardias',
-    procedimientos: 'Procedimientos',
-    interconsultas: 'Interconsultas',
-    mes: 'del mes',
-    error: 'Error al cargar estadísticas',
-    recargar: 'Recargar',
-    loading: 'Cargando...'
-  },
-  en: {
-    titulo: 'Statistics',
-    ingresosTotales: 'Total Earnings',
-    cobrado: 'Collected',
-    pendiente: 'Pending',
-    guardias: 'Shifts',
-    procedimientos: 'Procedures',
-    interconsultas: 'Consultations',
-    mes: 'for this month',
-    error: 'Error loading statistics',
-    recargar: 'Refresh',
-    loading: 'Loading...'
-  }
-};
+function formatCurrency(amount: number, currency: string) {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: currency === 'USD' ? 'USD' : 'ARS',
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
 
 export function StatsView({ onBack, settings }: StatsViewProps) {
-  const [stats, setStats] = useState<ActividadStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const t = translations[settings.language];
-
-  const fetchStats = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await api.getStats();
-      setStats(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t.error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: settings.currency === 'USD' ? 'USD' : 'ARS',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
+  const { stats, loading, error, fetchStats } = useStats();
 
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-slate-500">{t.loading}</p>
+          <p className="text-slate-500">{t.cargando}</p>
         </div>
       </div>
     );
@@ -108,12 +59,12 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
   if (!stats) return null;
 
   const cards = [
-    { label: t.ingresosTotales, value: formatCurrency(stats.total_ingresos), icon: TrendingUp, color: 'bg-blue-600' },
-    { label: t.cobrado, value: formatCurrency(stats.Cobrado), icon: CreditCard, color: 'bg-green-600' },
-    { label: t.pendiente, value: formatCurrency(stats.Pendiente), icon: Wallet, color: 'bg-amber-600' },
-    { label: t.guardias, value: formatCurrency(stats.total_guardias), icon: Clock, color: 'bg-purple-600' },
-    { label: t.procedimientos, value: formatCurrency(stats.total_procedimientos), icon: TrendingUp, color: 'bg-cyan-600' },
-    { label: t.interconsultas, value: formatCurrency(stats.total_interconsultas), icon: TrendingUp, color: 'bg-rose-600' },
+    { label: t.ingresosTotales, value: formatCurrency(stats.total_ingresos, settings.currency), icon: TrendingUp, color: 'bg-blue-600' },
+    { label: t.cobrado, value: formatCurrency(stats.Cobrado, settings.currency), icon: CreditCard, color: 'bg-green-600' },
+    { label: t.pendienteLabel, value: formatCurrency(stats.Pendiente, settings.currency), icon: Wallet, color: 'bg-amber-600' },
+    { label: t.guardias, value: formatCurrency(stats.total_guardias, settings.currency), icon: Clock, color: 'bg-purple-600' },
+    { label: t.procedimientos, value: formatCurrency(stats.total_procedimientos, settings.currency), icon: TrendingUp, color: 'bg-cyan-600' },
+    { label: t.interconsultas, value: formatCurrency(stats.total_interconsultas, settings.currency), icon: TrendingUp, color: 'bg-rose-600' },
   ];
 
   return (
@@ -122,10 +73,10 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className={cn("text-3xl font-black", settings.darkMode ? "text-white" : "text-slate-900")}>
-              {t.titulo}
+              {t.estadisticas}
             </h1>
             <p className={cn("text-sm font-medium mt-1", settings.darkMode ? "text-slate-400" : "text-slate-500")}>
-              {t.mes}: {stats.mes_actual}/{stats.anio_actual}
+              {t.mesDel}: {stats.mes_actual}/{stats.anio_actual}
             </p>
           </div>
           <button
@@ -137,7 +88,7 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
                 : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
             )}
           >
-            ← Volver
+            {t.volver}
           </button>
         </div>
 
@@ -163,10 +114,9 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
           ))}
         </div>
 
-        {/* Separador */}
         <div className="my-8 border-t border-slate-200 dark:border-slate-700" />
 
-        <ComparisonTable />
+        <ComparisonTable language={settings.language} />
 
         <button
           onClick={fetchStats}
@@ -183,4 +133,4 @@ export function StatsView({ onBack, settings }: StatsViewProps) {
       </div>
     </div>
   );
-};
+}

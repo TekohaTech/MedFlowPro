@@ -21,9 +21,9 @@ export function RateInfo({ institutionHasNoRates, rateBreakdown, language }: Rat
 
   if (institutionHasNoRates) {
     return (
-      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-snug">
+      <div className="rounded-lg bg-slate-100/80 dark:bg-slate-700/40 border border-slate-200/80 dark:border-slate-600/50 px-2.5 py-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-snug">
         {t.noTarifasConfiguradas}
-      </p>
+      </div>
     );
   }
 
@@ -34,8 +34,16 @@ export function RateInfo({ institutionHasNoRates, rateBreakdown, language }: Rat
   );
 
   return (
-    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-snug">
-      {parts.join(' + ')}
-    </p>
+    <div className="rounded-lg bg-slate-100/80 dark:bg-slate-700/40 border border-slate-200/80 dark:border-slate-600/50 px-2.5 py-1.5 text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-snug">
+      <span className="text-slate-400 dark:text-slate-500 text-[10px]">{t.desgloseGuardia}</span>
+      <div className="flex items-baseline gap-x-1.5 mt-0.5">
+        {parts.map((part, i) => (
+          <span key={i} className={i > 0 ? 'text-slate-400 dark:text-slate-500' : undefined}>
+            {i > 0 && <span className="mx-1">+</span>}
+            {part}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }

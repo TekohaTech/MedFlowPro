@@ -3,6 +3,7 @@ import { ShiftType, PaymentStatus, type Transaction } from '../../types';
 import {
   getShiftsForDay, formatGuardiaRange, formatCoverageDetail,
   formatCompactAmount, isShiftStart, isShiftCoverage,
+  formatSrOnlyDurationSummary,
 } from './calendarUtils';
 
 const guardia: Transaction = {
@@ -144,5 +145,40 @@ describe('formatCoverageDetail', () => {
       amount: 0, status: PaymentStatus.PENDING,
     };
     expect(formatCoverageDetail(multi, 'Guardia de')).toBe('Guardia de 48h · comenzó 02/08 08:00 → 04/08 08:00');
+  });
+});
+
+describe('formatSrOnlyDurationSummary', () => {
+  it('singular for a single coverage-only line: "Guardia activa: X"', () => {
+    expect(formatSrOnlyDurationSummary([
+      { institution: 'Madariaga', startsToday: false, endsToday: false },
+    ])).toBe('Guardia activa: Madariaga');
+  });
+
+  it('per-line flags: "termina hoy" / "comienza hoy" / "comienza y termina hoy"', () => {
+    expect(formatSrOnlyDurationSummary([
+      { institution: 'Madariaga', startsToday: false, endsToday: true },
+      { institution: 'Clínica', startsToday: true, endsToday: false },
+      { institution: 'Sanatorio', startsToday: true, endsToday: true },
+    ])).toBe(
+      'Guardias activas: Madariaga (termina hoy), Clínica (comienza hoy), Sanatorio (comienza y termina hoy)',
+    );
+  });
+
+  it('continuing lines in a multi-line day carry no flag (plain institution name)', () => {
+    expect(formatSrOnlyDurationSummary([
+      { institution: 'Madariaga', startsToday: false, endsToday: true },
+      { institution: 'Clínica', startsToday: false, endsToday: false },
+    ])).toBe('Guardias activas: Madariaga (termina hoy), Clínica');
+  });
+
+  it('SINGULAR even WITH a flag: one line that starts today', () => {
+    expect(formatSrOnlyDurationSummary([
+      { institution: 'Madariaga', startsToday: true, endsToday: false },
+    ])).toBe('Guardia activa: Madariaga (comienza hoy)');
+  });
+
+  it('empty input returns an empty string', () => {
+    expect(formatSrOnlyDurationSummary([])).toBe('');
   });
 });
