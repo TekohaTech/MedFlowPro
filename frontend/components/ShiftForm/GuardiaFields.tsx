@@ -78,6 +78,7 @@ export function GuardiaFields({
         date={date} endDate={endDate} startTime={startTime} endTime={endTime}
         onDateChange={onDateChange} onEndDateChange={onEndDateChange}
         onStartTimeChange={onStartTimeChange} onEndTimeChange={onEndTimeChange}
+        language={language}
       />
 
       {previewError && (
@@ -86,7 +87,7 @@ export function GuardiaFields({
 
       <ExtraActivitiesList extras={extras} onAdd={onAdd} onUpdate={onUpdate} onRemove={onRemove}
         extraTotal={extraTotal} procedimientoRate={selectedInstitution?.procedimiento_rate || 0}
-        interconsultaRate={selectedInstitution?.interconsulta_rate || 0} guardiaDate={guardiaDate} />
+        interconsultaRate={selectedInstitution?.interconsulta_rate || 0} guardiaDate={guardiaDate} language={language} />
     </>
   );
 }

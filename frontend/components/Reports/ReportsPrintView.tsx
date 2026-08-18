@@ -4,6 +4,7 @@ import { formatCurrency } from '../../lib/utils';
 import { format } from 'date-fns';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { translations, type Language } from '../../translations';
 
 interface ReportsPrintViewProps {
   periodLabel: string;
@@ -19,6 +20,7 @@ interface ReportsPrintViewProps {
   totalExtras: number;
   actividades: Transaction[];
   onClose: () => void;
+  language: Language;
 }
 
 const s = {
@@ -44,6 +46,12 @@ const s = {
   rowBorder: { borderBottom: '1px solid #f1f5f9' },
 };
 
+function formatPrintTimestamp(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}-${pad(now.getHours())}:${pad(now.getMinutes())}h`;
+}
+
 export function ReportsPrintView({
   periodLabel,
   institutionLabel,
@@ -58,15 +66,11 @@ export function ReportsPrintView({
   totalExtras,
   actividades,
   onClose,
+  language,
 }: ReportsPrintViewProps) {
+  const t = translations[language];
   useEffect(() => {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    document.title = `MedFlow Pro - ${day}/${month}/${year}-${hours}:${minutes}h`;
+    document.title = `MedFlow Pro - ${formatPrintTimestamp()}`;
     return () => { document.title = 'MedFlow Pro'; };
   }, []);
 
@@ -75,23 +79,21 @@ export function ReportsPrintView({
       <div className="flex justify-between mb-8 print:hidden">
         <Button variant="secondary" size="sm" onClick={onClose}>
           <ArrowLeft className="w-4 h-4" />
-          Volver
+          {t.volver}
         </Button>
         <Button size="sm" onClick={() => {
-          const now = new Date();
-          const ts = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}-${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}h`;
-          document.title = `MedFlow Pro - ${ts}`;
+          document.title = `MedFlow Pro - ${formatPrintTimestamp()}`;
           window.print();
         }}>
           <Printer className="w-4 h-4" />
-          Imprimir
+          {t.imprimir}
         </Button>
       </div>
 
       <div style={s.card}>
         <div style={{ textAlign: 'center', ...s.borderBottom, paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 900, ...s.h1, margin: 0 }}>MedFlow Pro</h1>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, ...s.h2, marginTop: '0.25rem', marginBottom: 0 }}>Reporte de Actividad Profesional</h2>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 700, ...s.h2, marginTop: '0.25rem', marginBottom: 0 }}>{t.reporteActividadProfesional}</h2>
           {userName && (
             <p style={{ fontSize: '1rem', fontWeight: 700, ...s.h1, marginTop: '0.75rem', marginBottom: '0.25rem' }}>
               {userName}{userSpecialty ? ` — ${userSpecialty}` : ''}
@@ -101,7 +103,7 @@ export function ReportsPrintView({
             {periodLabel} {institutionLabel ? `\u2022 ${institutionLabel}` : ''}
           </p>
           <p style={{ fontSize: '0.75rem', ...s.small, marginTop: '0.25rem', marginBottom: 0 }}>
-            Generado: {format(new Date(), 'dd/MM/yyyy HH:mm')}
+            {t.generado} {format(new Date(), 'dd/MM/yyyy HH:mm')}
           </p>
         </div>
 
@@ -111,49 +113,49 @@ export function ReportsPrintView({
             <p style={{ fontSize: '1.25rem', fontWeight: 900, ...s.catValue, margin: 0 }}>{formatCurrency(totalInvoiced)}</p>
           </div>
           <div style={{ textAlign: 'center', ...s.statGreen }}>
-            <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#16a34a', margin: 0 }}>Cobrado</p>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#16a34a', margin: 0 }}>{t.cobrado}</p>
             <p style={{ fontSize: '1.25rem', fontWeight: 900, color: '#15803d', margin: 0 }}>{formatCurrency(totalPaid)}</p>
           </div>
           <div style={{ textAlign: 'center', ...s.statOrange }}>
-            <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#ea580c', margin: 0 }}>Pendiente</p>
+            <p style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#ea580c', margin: 0 }}>{t.pendiente}</p>
             <p style={{ fontSize: '1.25rem', fontWeight: 900, color: '#c2410c', margin: 0 }}>{formatCurrency(totalPending)}</p>
           </div>
         </div>
 
         <div style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ fontWeight: 700, ...s.sectionTitle, marginBottom: '0.75rem' }}>Resumen por Tipo</h3>
+          <h3 style={{ fontWeight: 700, ...s.sectionTitle, marginBottom: '0.75rem' }}>{t.resumenPorTipo}</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', fontSize: '0.875rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', ...s.chipBlue }}>
-              <span style={{ fontWeight: 500 }}>Guardias:</span>
+              <span style={{ fontWeight: 500 }}>{t.guardiasLabel}</span>
               <span style={{ fontWeight: 700 }}>{formatCurrency(totalGuardias)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', ...s.chipPurple }}>
-              <span style={{ fontWeight: 500 }}>Procedimientos:</span>
+              <span style={{ fontWeight: 500 }}>{t.procedimientosLabel}</span>
               <span style={{ fontWeight: 700 }}>{formatCurrency(totalProcedimientos)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', ...s.chipGreen }}>
-              <span style={{ fontWeight: 500 }}>Interconsultas:</span>
+              <span style={{ fontWeight: 500 }}>{t.interconsultasLabel}</span>
               <span style={{ fontWeight: 700 }}>{formatCurrency(totalInterconsultas)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', ...s.chipBlue, background: '#fffbeb', borderRadius: '0.5rem', padding: '0.75rem' }}>
-              <span style={{ fontWeight: 500 }}>Extras:</span>
+              <span style={{ fontWeight: 500 }}>{t.extrasLabel}</span>
               <span style={{ fontWeight: 700 }}>{formatCurrency(totalExtras)}</span>
             </div>
           </div>
         </div>
 
         <div>
-          <h3 style={{ fontWeight: 700, ...s.sectionTitle, marginBottom: '0.75rem' }}>Detalle de Actividades</h3>
+          <h3 style={{ fontWeight: 700, ...s.sectionTitle, marginBottom: '0.75rem' }}>{t.detalleActividades}</h3>
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', fontSize: '0.875rem', borderCollapse: 'collapse', minWidth: '500px' }}>
             <thead>
               <tr style={s.thead}>
-                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>Fecha</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>Tipo</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>Institución</th>
-                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>Detalle</th>
-                <th style={{ textAlign: 'right', padding: '0.5rem', fontWeight: 700, ...s.th }}>Monto</th>
-                <th style={{ textAlign: 'right', padding: '0.5rem', fontWeight: 700, ...s.th }}>Estado</th>
+                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>{t.fecha}</th>
+                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>{t.tipoLabel}</th>
+                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>{t.institucionLabel}</th>
+                <th style={{ textAlign: 'left', padding: '0.5rem', fontWeight: 700, ...s.th }}>{t.detalleLabel}</th>
+                <th style={{ textAlign: 'right', padding: '0.5rem', fontWeight: 700, ...s.th }}>{t.montoLabel}</th>
+                <th style={{ textAlign: 'right', padding: '0.5rem', fontWeight: 700, ...s.th }}>{t.estadoLabelTable}</th>
               </tr>
             </thead>
             <tbody>
@@ -161,10 +163,10 @@ export function ReportsPrintView({
                 <tr key={i} style={s.rowBorder}>
                   <td style={{ padding: '0.5rem', ...s.td }}>{a.date}</td>
                   <td style={{ padding: '0.5rem', ...s.td }}>
-                    {a.type === ShiftType.ACTIVE && 'Guardia'}
-                    {a.type === ShiftType.CONSULTATION && 'Proc.'}
-                    {a.type === ShiftType.PASSIVE && 'Inter.'}
-                    {a.type === ShiftType.EXTRA && 'Extra'}
+                    {a.type === ShiftType.ACTIVE && t.guardiaRow}
+                    {a.type === ShiftType.CONSULTATION && t.tipoProced}
+                    {a.type === ShiftType.PASSIVE && t.inter}
+                    {a.type === ShiftType.EXTRA && t.tipoExtra}
                   </td>
                   <td style={{ padding: '0.5rem', ...s.td }}>{a.institution}</td>
                   <td style={{ padding: '0.5rem', fontSize: '0.75rem', ...s.td }}>

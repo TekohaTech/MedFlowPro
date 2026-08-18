@@ -48,6 +48,7 @@ export function ReportsView({ transactions, institutions, settings, profile, onB
           totalExtras={totalExtras}
           actividades={filteredActividades}
           onClose={() => setShowPrintView(false)}
+          language={settings.language}
         />
       </div>
     );

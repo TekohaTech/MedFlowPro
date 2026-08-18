@@ -167,7 +167,7 @@ export function ShiftForm({
             </div>
           )}
 
-          <PaymentStatusToggle status={form.status} onChange={form.handleStatusToggle} />
+          <PaymentStatusToggle status={form.status} onChange={form.handleStatusToggle} language={settings.language} />
 
           <div className="space-y-2">
             <Label>{t.notasOpcional}</Label>

@@ -1,4 +1,4 @@
-import { useActionState, useState, type FormEvent } from 'react';
+import { useActionState, useState } from 'react';
 import { Sparkles, Check, ArrowLeft } from 'lucide-react';
 import { translations, type Language } from '../../translations';
 import { Button } from '../ui/Button';
@@ -58,7 +58,7 @@ export function RegisterView({ onRegister, onBackToLogin, error, isLoading, sett
         await onRegister(data);
         return { error: null, success: true };
       } catch {
-        return { error: 'Error al crear la cuenta. Intentalo de nuevo.', success: false };
+        return { error: t.errorCrearCuenta, success: false };
       }
     },
     { error: null, success: false },
@@ -99,22 +99,6 @@ export function RegisterView({ onRegister, onBackToLogin, error, isLoading, sett
     setTouched(prev => ({ ...prev, [name]: true }));
     setFieldErrors(prev => ({ ...prev, [name]: validateField(name, form[name as keyof typeof form]) }));
   };
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const errors: FieldErrors = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = t.emailInvalido;
-    if (form.full_name.length < 2) errors.full_name = t.nombreRequerido;
-    if (form.password.length < 8 || !/[A-Z]/.test(form.password) || !/[a-z]/.test(form.password) || !/[0-9]/.test(form.password)) {
-      errors.password = t.contrasenaDebil;
-    }
-    if (form.password !== form.password_confirm) errors.password_confirm = t.contrasenasNoCoinciden;
-    setFieldErrors(errors);
-    setTouched({ email: true, full_name: true, password: true, password_confirm: true });
-    if (Object.keys(errors).length > 0) return;
-    const fd = new FormData();
-    Object.entries(form).forEach(([key, val]) => fd.append(key, val));
-    formAction(fd);
-  };
   const passwordStrength = (pwd: string): { score: number; label: string; color: string } => {
     let score = 0;
     if (pwd.length >= 8) score++;
@@ -122,9 +106,9 @@ export function RegisterView({ onRegister, onBackToLogin, error, isLoading, sett
     if (/[a-z]/.test(pwd)) score++;
     if (/[0-9]/.test(pwd)) score++;
     if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    if (score <= 2) return { score, label: 'Débil', color: 'bg-red-500' };
-    if (score <= 3) return { score, label: 'Media', color: 'bg-yellow-500' };
-    return { score, label: 'Fuerte', color: 'bg-green-500' };
+    if (score <= 2) return { score, label: t.passwordDebil, color: 'bg-red-500' };
+    if (score <= 3) return { score, label: t.passwordMedia, color: 'bg-yellow-500' };
+    return { score, label: t.passwordFuerte, color: 'bg-green-500' };
   };
   const strength = passwordStrength(form.password);
   return (
@@ -174,12 +158,12 @@ export function RegisterView({ onRegister, onBackToLogin, error, isLoading, sett
                 strength={strength}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                onSubmit={handleSubmit}
                 isPending={isPending}
                 isLoading={isLoading}
                 stateError={state.error}
                 serverError={error}
                 t={t}
+                formAction={formAction}
               />
               <p className="text-center text-slate-400 text-sm mt-6">
                 {t.yaTienesCuenta}{' '}

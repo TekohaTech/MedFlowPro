@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff, X, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
+import { type Language } from '../../translations';
 
 interface RegisterFormFieldsProps {
   form: Record<string, string>;
@@ -10,18 +11,18 @@ interface RegisterFormFieldsProps {
   strength: { score: number; label: string; color: string };
   onChange: (name: string, value: string) => void;
   onBlur: (name: string) => void;
-  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   isPending: boolean;
   isLoading: boolean;
   stateError: string | null;
   serverError: string;
   t: Record<string, string>;
+  formAction: (fd: FormData) => void;
 }
 
 export function RegisterFormFields({
   form, fieldErrors, touched, strength,
-  onChange, onBlur, onSubmit,
-  isPending, isLoading, stateError, serverError, t,
+  onChange, onBlur,
+  isPending, isLoading, stateError, serverError, t, formAction,
 }: RegisterFormFieldsProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -33,22 +34,8 @@ export function RegisterFormFields({
         : 'border-slate-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20'
     }`;
 
-  const renderField = (name: string, label: string, required: boolean, extra?: React.ReactNode) => (
-    <div>
-      <Label variant="auth">
-        {label} {required && <span className="text-red-500">*</span>}
-      </Label>
-      {extra}
-      {touched[name] && fieldErrors[name] && (
-        <p className="text-red-500 text-xs mt-1 font-medium flex items-center gap-1">
-          <X className="w-3 h-3" /> {fieldErrors[name]}
-        </p>
-      )}
-    </div>
-  );
-
   return (
-    <form onSubmit={onSubmit} className="space-y-4" noValidate>
+    <form action={formAction} className="space-y-4" noValidate>
       <div>
         <Label variant="auth">
           {t.nombreCompleto} <span className="text-red-500">*</span>
@@ -126,12 +113,12 @@ export function RegisterFormFields({
                 );
               })}
             </div>
-            <p className={`text-xs font-medium ${strength.label === 'Fuerte' ? 'text-green-600' : 'text-slate-400'}`}>
-              {strength.label === 'Fuerte' ? '✓ Contraseña segura' : 'Requisitos: ' + [
-                form.password.length < 8 && '8+ caracteres',
-                !/[A-Z]/.test(form.password) && 'mayúscula',
-                !/[a-z]/.test(form.password) && 'minúscula',
-                !/[0-9]/.test(form.password) && 'número',
+            <p className={`text-xs font-medium ${strength.label === t.passwordFuerte ? 'text-green-600' : 'text-slate-400'}`}>
+              {strength.label === t.passwordFuerte ? t.contrasenaSegura : t.requisitosLabel + ' ' + [
+                form.password.length < 8 && t.requisito8chars,
+                !/[A-Z]/.test(form.password) && t.requisitoMayuscula,
+                !/[a-z]/.test(form.password) && t.requisitoMinuscula,
+                !/[0-9]/.test(form.password) && t.requisitoNumero,
               ].filter(Boolean).join(', ')}
             </p>
           </div>

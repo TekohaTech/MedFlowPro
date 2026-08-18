@@ -29,7 +29,7 @@ export function LoginView({ onLogin, loginError, isLoading, settings, onNavigate
         await onLogin(email, password);
         return { error: null };
       } catch {
-        return { error: 'Error al iniciar sesión. Verificá tus credenciales.' };
+        return { error: t.errorLogin };
       }
     },
     { error: null },
@@ -68,7 +68,7 @@ export function LoginView({ onLogin, loginError, isLoading, settings, onNavigate
           
           <form action={formAction} className="space-y-5">
             <div>
-              <Label variant="auth" htmlFor="login-email">{t.email || "Email"}</Label>
+              <Label variant="auth" htmlFor="login-email">{t.email}</Label>
               <input
                 type="email"
                 name="email"
@@ -82,7 +82,7 @@ export function LoginView({ onLogin, loginError, isLoading, settings, onNavigate
             </div>
 
             <div>
-              <Label variant="auth" htmlFor="login-password">{t.contrasena || "Contraseña"}</Label>
+              <Label variant="auth" htmlFor="login-password">{t.contrasena}</Label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -111,7 +111,7 @@ export function LoginView({ onLogin, loginError, isLoading, settings, onNavigate
             )}
 
             <Button type="submit" disabled={busy} className="w-full py-4 text-lg">
-              {busy ? t.cargando : 'Iniciar Sesión'}
+              {busy ? t.cargando : t.iniciarSesionBtn}
             </Button>
           </form>
 

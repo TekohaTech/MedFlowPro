@@ -193,7 +193,7 @@ describe('RateEditor save error visibility', () => {
     });
 
     expect(api.updateInstitution).toHaveBeenCalledWith('i1', { guardia_feriado_rate: 1250.5 });
-    expect(container.textContent).toContain('Guardia feriado actualizada');
+    expect(container.textContent).toContain('Guardia Feriado actualizada');
     expect(container.textContent).not.toContain('No se pudo guardar la tarifa');
   });
 

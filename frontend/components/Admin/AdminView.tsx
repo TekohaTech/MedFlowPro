@@ -7,6 +7,7 @@ import { AdminPasswordModal } from "./AdminPasswordModal";
 import { AdminNotifyModal } from "./AdminNotifyModal";
 import { useAdminUsers } from "./useAdminUsers";
 import { useState } from "react";
+import { translations } from "../../translations";
 
 interface AdminViewProps {
   settings: UserSettings;
@@ -14,6 +15,7 @@ interface AdminViewProps {
 }
 
 export function AdminView({ settings, onBack }: AdminViewProps) {
+  const t = translations[settings.language];
   const {
     search, setSearch, filter, setFilter, isLoading, error,
     filteredUsers, filterButtons,
@@ -35,8 +37,8 @@ export function AdminView({ settings, onBack }: AdminViewProps) {
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <div>
-            <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">Panel de Administración</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestión de médicos y suscripciones</p>
+            <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">{t.panelAdmin}</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t.gestionMedicos}</p>
           </div>
         </div>
       </div>
@@ -50,7 +52,7 @@ export function AdminView({ settings, onBack }: AdminViewProps) {
       <div className="mb-6 space-y-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-          <input type="text" placeholder="Buscar por email, nombre o teléfono..." value={search}
+          <input type="text" placeholder={t.buscarAdmin} value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-12 pr-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all outline-none" />
         </div>
@@ -65,7 +67,7 @@ export function AdminView({ settings, onBack }: AdminViewProps) {
           <div className="ml-auto">
             <Button size="sm" variant="primary" onClick={() => setShowNotifyModal(true)}>
               <BellPlus className="w-4 h-4" />
-              Notificar
+              {t.notificar}
             </Button>
           </div>
         </div>
@@ -78,20 +80,20 @@ export function AdminView({ settings, onBack }: AdminViewProps) {
       ) : filteredUsers.length === 0 ? (
         <div className="text-center py-20">
           <Shield className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-          <p className="text-slate-500 dark:text-slate-400 font-medium">{search ? "No se encontraron usuarios con ese criterio" : "No hay usuarios en esta categoría"}</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">{search ? t.noEncontrados : t.noUsuariosCategoria}</p>
         </div>
       ) : (
         <AdminUserTable users={filteredUsers} toggling={toggling} resetting={resetting} deleting={deleting}
-          onToggleActive={handleToggleActive} onResetPassword={handleResetPassword} onDelete={handleDelete} />
+          onToggleActive={handleToggleActive} onResetPassword={handleResetPassword} onDelete={handleDelete} language={settings.language} />
       )}
 
       <AdminConfirmModal show={showConfirmModal} data={confirmData} mode={confirmMode}
         onClose={() => { setShowConfirmModal(false); setConfirmData(null); }}
-        onConfirm={confirmMode === 'delete' ? executeDelete : executeResetPassword} />
+        onConfirm={confirmMode === 'delete' ? executeDelete : executeResetPassword} language={settings.language} />
 
       <AdminPasswordModal show={showPasswordModal} password={generatedPassword} userName={passwordUserName}
         userEmail={passwordUserEmail} copied={passwordCopied} onCopy={copyPassword}
-        onClose={() => setShowPasswordModal(false)} />
+        onClose={() => setShowPasswordModal(false)} language={settings.language} />
 
       <AdminNotifyModal
         show={showNotifyModal}
@@ -102,4 +104,4 @@ export function AdminView({ settings, onBack }: AdminViewProps) {
       />
     </div>
   );
-};
+}

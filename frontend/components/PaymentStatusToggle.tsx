@@ -2,16 +2,19 @@ import { cn } from '../lib/utils';
 import { Clock, Check } from 'lucide-react';
 import { PaymentStatus } from '../types';
 import { Label } from './ui/Label';
+import { translations, type Language } from '../translations';
 
 interface PaymentStatusToggleProps {
   status: PaymentStatus;
   onChange: () => void;
+  language: Language;
 }
 
-export function PaymentStatusToggle({ status, onChange }: PaymentStatusToggleProps) {
+export function PaymentStatusToggle({ status, onChange, language }: PaymentStatusToggleProps) {
+  const t = translations[language];
   return (
     <div className="space-y-2">
-      <Label variant="business">Estado del Pago</Label>
+      <Label variant="business">{t.estadoPago}</Label>
       <div
         onClick={onChange}
           className={cn(
@@ -28,7 +31,7 @@ export function PaymentStatusToggle({ status, onChange }: PaymentStatusTogglePro
             : "text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-900/30"
         )}>
           <Clock className={status === PaymentStatus.PENDING ? "w-4 h-4" : "w-4 h-4 opacity-50"} />
-          Pendiente
+          {t.pendiente}
         </div>
         <div className={cn(
           "flex-1 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all duration-300",
@@ -37,13 +40,13 @@ export function PaymentStatusToggle({ status, onChange }: PaymentStatusTogglePro
             : "text-green-500 hover:bg-green-100 dark:hover:bg-green-900/30"
         )}>
           <Check className={status === PaymentStatus.PAID ? "w-4 h-4" : "w-4 h-4 opacity-50"} />
-          Pagado
+          {t.pagado}
         </div>
       </div>
       <p className="text-[9px] text-slate-400 flex items-center gap-1">
         {String.fromCharCode(0x1F4A1)} {status === PaymentStatus.PENDING
-          ? "Marcado como Pendiente — toca para cambiar a Pagado"
-          : "Marcado como Pagado — toca para cambiar a Pendiente"}
+          ? t.marcadoPendiente
+          : t.marcadoPagado}
       </p>
     </div>
   );

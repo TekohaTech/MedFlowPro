@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import { X, Send, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/Button';
-import { api } from '../../services/api';
 import { translations, Language } from '../../translations';
+import { useAdminNotify } from '../../hooks/useAdminNotify';
 
 interface UserOption {
   id: string;
@@ -19,8 +18,6 @@ interface AdminNotifyModalProps {
   language: Language;
 }
 
-type TargetMode = 'specific' | 'all' | 'filter';
-
 export function AdminNotifyModal({
   show,
   onClose,
@@ -29,46 +26,17 @@ export function AdminNotifyModal({
   language,
 }: AdminNotifyModalProps) {
   const t = translations[language];
-
-  const [targetMode, setTargetMode] = useState<TargetMode>('all');
-  const [selectedUserId, setSelectedUserId] = useState('');
-  const [type, setType] = useState<'info' | 'warning' | 'alert'>('info');
-  const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, setIsPending] = useState(false);
+  const {
+    targetMode, setTargetMode,
+    selectedUserId, setSelectedUserId,
+    type, setType,
+    title, setTitle,
+    message, setMessage,
+    error, isPending,
+    handleSubmit,
+  } = useAdminNotify({ language, onClose });
 
   if (!show) return null;
-
-  const handleSubmit = async () => {
-    if (!title.trim() || !message.trim()) {
-      setError('Completá todos los campos');
-      return;
-    }
-    setError(null);
-    setIsPending(true);
-
-    try {
-      await api.createNotification({
-        target_user_id: targetMode === 'specific' ? selectedUserId : null,
-        target_all: targetMode === 'all',
-        type,
-        title: title.trim(),
-        message: message.trim(),
-      });
-      onClose();
-      // Reset
-      setTitle('');
-      setMessage('');
-      setType('info');
-      setTargetMode('all');
-      setSelectedUserId('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al enviar');
-    } finally {
-      setIsPending(false);
-    }
-  };
 
   const typeLabels: Record<string, string> = {
     info: t.notifInfo,
@@ -165,7 +133,7 @@ export function AdminNotifyModal({
             <textarea
               value={message}
               onChange={e => setMessage(e.target.value)}
-              placeholder="Escribí el mensaje..."
+              placeholder={t.escribirMensaje}
               maxLength={2000}
               rows={4}
               className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none resize-none"
@@ -180,7 +148,7 @@ export function AdminNotifyModal({
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 p-6 pt-0">
           <Button variant="secondary" onClick={onClose}>
-            Cancelar
+            {t.cancelar}
           </Button>
           <Button variant="primary" onClick={handleSubmit} disabled={isPending}>
             {isPending ? (

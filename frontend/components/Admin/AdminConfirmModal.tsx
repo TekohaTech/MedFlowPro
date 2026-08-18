@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import { Button } from "../ui/Button";
+import { translations, type Language } from "../../translations";
 
 interface ConfirmData {
   id: string;
@@ -13,9 +14,11 @@ interface AdminConfirmModalProps {
   mode: 'delete' | 'reset';
   onClose: () => void;
   onConfirm: () => void;
+  language: Language;
 }
 
-export function AdminConfirmModal({ show, data, mode, onClose, onConfirm }: AdminConfirmModalProps) {
+export function AdminConfirmModal({ show, data, mode, onClose, onConfirm, language }: AdminConfirmModalProps) {
+  const t = translations[language];
   if (!show || !data) return null;
   return (
     <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
@@ -25,13 +28,13 @@ export function AdminConfirmModal({ show, data, mode, onClose, onConfirm }: Admi
         </div>
         {mode === 'delete' ? (
           <>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Eliminar usuario</h3>
-            <p className="text-sm text-slate-500 mb-4">¿Estás seguro de eliminar este usuario? Los datos se conservarán pero no podrá acceder.</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">{t.eliminarUsuario}</h3>
+            <p className="text-sm text-slate-500 mb-4">{t.confirmarEliminarMsg}</p>
           </>
         ) : (
           <>
-            <h3 className="text-lg font-bold text-slate-900 mb-1">Resetear contraseña</h3>
-            <p className="text-sm text-slate-500 mb-4">Vas a resetear la contraseña de:</p>
+            <h3 className="text-lg font-bold text-slate-900 mb-1">{t.resetearContrasena}</h3>
+            <p className="text-sm text-slate-500 mb-4">{t.resetearContrasenaMsg}</p>
           </>
         )}
         <div className="bg-slate-50 rounded-xl p-4 mb-5">
@@ -39,9 +42,9 @@ export function AdminConfirmModal({ show, data, mode, onClose, onConfirm }: Admi
           <p className="text-sm text-slate-500 mt-1">{data.email}</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="secondary" className="flex-1" onClick={onClose}>Cancelar</Button>
+          <Button variant="secondary" className="flex-1" onClick={onClose}>{t.cancelar}</Button>
           <Button className="flex-1 bg-red-600 hover:bg-red-700" onClick={onConfirm}>
-            {mode === 'delete' ? 'Sí, eliminar' : 'Sí, resetear'}
+            {mode === 'delete' ? t.siEliminar : t.siResetear}
           </Button>
         </div>
       </div>
