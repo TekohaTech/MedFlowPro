@@ -95,6 +95,7 @@ export function ReportsView({ transactions, institutions, settings, profile, onB
         totalInterconsultas={totalInterconsultas}
         totalExtras={totalExtras}
         filteredActividades={filteredActividades}
+        language={settings.language}
       />
 
       <Card padding="sm" shadow="xl" className="lg:p-6">

@@ -131,6 +131,7 @@ export function Dashboard({
         nextShift={nextShift}
         nextOverlap={nextOverlap}
         onOpenForm={onOpenForm}
+        language={settings.language}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">

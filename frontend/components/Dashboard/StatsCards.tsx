@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { DashboardCard } from './DashboardCard';
 import { cn } from '../../lib/utils';
+import { translations, type Language } from '../../translations';
 import type { OverlapInfo } from '../Calendar/calendarUtils';
 
 interface MonthCounts {
@@ -22,6 +23,7 @@ interface StatsCardsProps {
   nextShift: Transaction | null;
   nextOverlap: OverlapInfo | null;
   onOpenForm: () => void;
+  language?: Language;
 }
 
 function StatBadge({ count, icon, label }: { count: number; icon: React.ReactNode; label: string }) {
@@ -41,11 +43,14 @@ export function StatsCards({
   nextShift,
   nextOverlap,
   onOpenForm,
+  language = 'es',
 }: StatsCardsProps) {
+  const t = translations[language];
   const now = new Date();
-  const currentLabel = now.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const locale = language === 'en' ? 'en-US' : 'es-AR';
+  const currentLabel = now.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const prevLabel = prevDate.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const prevLabel = prevDate.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 
   const delta = prevMonthTotal > 0
     ? Math.round(((currentMonthTotal - prevMonthTotal) / prevMonthTotal) * 100)
@@ -61,17 +66,17 @@ export function StatsCards({
             <Activity className="w-5 lg:w-6 h-5 lg:h-6" />
           </div>
           <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-            Actividades del Mes
+            {t.actividadesMes}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <StatBadge count={currentMonthCounts.guardias} icon={<Clock className="w-3.5 h-3.5" />} label="guardias" />
-          <StatBadge count={currentMonthCounts.procedimientos} icon={<Stethoscope className="w-3.5 h-3.5" />} label="procedimientos" />
-          <StatBadge count={currentMonthCounts.interconsultas} icon={<UserCheck className="w-3.5 h-3.5" />} label="interconsultas" />
-          <StatBadge count={currentMonthCounts.extras} icon={<FileText className="w-3.5 h-3.5" />} label="extras" />
+          <StatBadge count={currentMonthCounts.guardias} icon={<Clock className="w-3.5 h-3.5" />} label={t.gdia} />
+          <StatBadge count={currentMonthCounts.procedimientos} icon={<Stethoscope className="w-3.5 h-3.5" />} label={t.proc} />
+          <StatBadge count={currentMonthCounts.interconsultas} icon={<UserCheck className="w-3.5 h-3.5" />} label={t.inter} />
+          <StatBadge count={currentMonthCounts.extras} icon={<FileText className="w-3.5 h-3.5" />} label={t.extras} />
         </div>
         {currentMonthCounts.guardias + currentMonthCounts.procedimientos + currentMonthCounts.interconsultas + currentMonthCounts.extras === 0 && (
-          <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">Sin actividades este mes</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">{t.sinActividadesMes}</p>
         )}
       </DashboardCard>
 
@@ -81,13 +86,13 @@ export function StatsCards({
             <PieChart className="w-5 lg:w-6 h-5 lg:h-6" />
           </div>
           <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-            Comparativa
+            {t.comparativaLabel}
           </span>
         </div>
         <div className="flex-1 space-y-4 lg:space-y-5">
           <div>
             <p className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-0.5">
-              Este mes
+              {t.esteMes}
             </p>
             <p className="text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-wide mb-1">
               {currentLabel}
@@ -101,7 +106,7 @@ export function StatsCards({
           </div>
           <div className="border-t border-white/10 pt-4 lg:pt-5">
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">
-              Mes pasado
+              {t.mesPasado}
             </p>
             <p className="text-[8px] lg:text-[9px] font-bold text-white/40 uppercase tracking-wide mb-1">
               {prevLabel}
@@ -121,7 +126,7 @@ export function StatsCards({
               isUp ? "text-green-400" : "text-red-400",
             )}>
               {isUp ? <TrendingUp className="w-3.5 h-3.5 lg:w-4 lg:h-4" /> : <TrendingDown className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
-              {isUp ? '+' : ''}{delta}% vs mes anterior
+              {isUp ? '+' : ''}{delta}{t.vsMesAnterior}
             </div>
           </div>
           <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
@@ -140,9 +145,9 @@ export function StatsCards({
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between mb-3 lg:mb-4">
             <p className="text-xs font-black uppercase tracking-[0.2em] opacity-70">
-              {nextShift?.type === ShiftType.EXTRA ? 'Próximo Extra'
-                : nextShift?.type === ShiftType.CONSULTATION ? 'Próximo Procedimiento'
-                : 'Próxima Guardia'}
+              {nextShift?.type === ShiftType.EXTRA ? t.proximoExtra
+                : nextShift?.type === ShiftType.CONSULTATION ? t.proximoProcedimiento
+                : t.proximaGuardia}
             </p>
             <div className="w-10 lg:w-12 h-10 lg:h-12 bg-white/20 rounded-xl lg:rounded-2xl flex items-center justify-center">
               <Clock className="w-5 lg:w-6 h-5 lg:h-6" />
@@ -150,12 +155,12 @@ export function StatsCards({
           </div>
           <div className="flex-1">
             <h3 className="text-lg lg:text-2xl font-black tracking-tight leading-tight truncate">
-              {nextShift ? nextShift.institution : 'Sin guardias'}
+              {nextShift ? nextShift.institution : t.sinGuardias}
             </h3>
             {nextShift && (
               <>
                 <p className="text-blue-100 font-bold mt-1 text-xs tracking-widest">
-                  {new Date(nextShift.date + 'T12:00:00').toLocaleDateString('es-AR', {
+                  {new Date(nextShift.date + 'T12:00:00').toLocaleDateString(locale, {
                     weekday: 'short', day: 'numeric', month: 'short'
                   })}
                   {nextShift.startTime && <> · {nextShift.startTime}</>}
@@ -171,30 +176,30 @@ export function StatsCards({
                   return (
                     <>
                       <p className="text-blue-200 text-xs font-bold mt-2">
-                        {totalH} hs{isGuardia ? ' de guardia' : ''}
+                        {totalH} hs{isGuardia ? ` ${t.deGuardia}` : ''}
                       </p>
                       <p className="text-blue-100 text-xs font-black mt-0.5">
                         {nextShift.startTime || '08:00'} → {nextShift.endTime || '08:00'}
                         {nextShift.endDate && nextShift.endDate !== nextShift.date
-                          ? ` · ${new Date(nextShift.endDate + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })}`
+                          ? ` · ${new Date(nextShift.endDate + 'T12:00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}`
                           : ''}
                       </p>
                       <p className="text-blue-100/70 text-xs font-bold mt-1.5">
-                        Libre desde las {nextShift.endTime || '08:00'}
+                        {t.libreDesde} {nextShift.endTime || '08:00'}
                       </p>
                     </>
                   );
                 })()}
                 <div className="flex items-center gap-2 mt-4 lg:mt-6">
                   <span className="bg-white/20 px-2 lg:px-3 py-1 text-xs font-black rounded-lg uppercase">
-                    {nextShift.type === ShiftType.EXTRA ? 'Extra'
-                      : nextShift.type === ShiftType.ACTIVE ? 'Guardia'
-                      : nextShift.type === ShiftType.CONSULTATION ? 'Procedimiento'
-                      : nextShift.type === ShiftType.PASSIVE ? 'Interconsulta'
+                    {nextShift.type === ShiftType.EXTRA ? t.extraLabel
+                      : nextShift.type === ShiftType.ACTIVE ? t.guardiaLabel
+                      : nextShift.type === ShiftType.CONSULTATION ? t.procedimientoLabel
+                      : nextShift.type === ShiftType.PASSIVE ? t.interconsultaLabel
                       : nextShift.type}
                   </span>
                   <span className="bg-white/20 px-2 lg:px-3 py-1 text-xs font-black rounded-lg uppercase">
-                    {nextShift.status === PaymentStatus.PAID ? 'Pagado' : 'Pendiente'}
+                    {nextShift.status === PaymentStatus.PAID ? t.pagado : t.pendiente}
                   </span>
                 </div>
               </>
@@ -214,7 +219,7 @@ export function StatsCards({
               onClick={onOpenForm}
               className="mt-3 lg:mt-4 text-xs font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 p-2 rounded-xl text-center"
             >
-              Programar ahora
+              {t.programarAhora}
             </button>
           )}
         </div>

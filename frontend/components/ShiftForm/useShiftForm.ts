@@ -121,7 +121,7 @@ export function useShiftForm(
   const [startTime, setStartTime] = useState(editingTransaction?.startTime || '08:00');
   const [endTime, setEndTime] = useState(editingTransaction?.endTime || '08:00');
   const [endDate, setEndDate] = useState(editingTransaction?.endDate || format(addDays(new Date(), 1), 'yyyy-MM-dd'));
-  const [hours, setHours] = useState<string>(editingTransaction?.duration ? editingTransaction.duration.toString() : '12');
+  const [hours, setHours] = useState<string>(editingTransaction?.duration ? editingTransaction.duration.toString() : '24');
   const [hourlyRate, setHourlyRate] = useState<string>('');
   const [extras, setExtras] = useState<ExtraActivity[]>([]);
   const [shiftSubtype, setShiftSubtype] = useState<'activa' | 'pasiva'>('activa');
