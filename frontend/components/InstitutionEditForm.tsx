@@ -52,15 +52,18 @@ export function InstitutionEditForm({
               <label className="text-[9px] font-black text-blue-700 dark:text-blue-400 block mb-2 uppercase tracking-widest">
                 {t.guardiaPorHora}
               </label>
+              <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5">{t.semanaLunVie}</label>
               <input type="text" inputMode="numeric" value={form.guardiaSemanaRate} onChange={setField('guardiaSemanaRate')}
-                placeholder={t.semanaLunVie} title={t.semanaLunVieTitle}
+                title={t.semanaLunVieTitle}
                 className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
+              <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5 mt-1.5">{t.findeSabDom}</label>
               <input type="text" inputMode="numeric" value={form.guardiaFindeRate} onChange={setField('guardiaFindeRate')}
-                placeholder={t.findeSabDom} title={t.findeSabDomTitle}
-                className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
+                title={t.findeSabDomTitle}
+                className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
+              <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5 mt-1.5">{t.feriadoOpcional}</label>
               <input type="text" inputMode="numeric" value={form.guardiaFeriadoRate} onChange={setField('guardiaFeriadoRate')}
-                placeholder={t.feriadoOpcional} title={t.feriadoOpcionalTitle}
-                className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
+                title={t.feriadoOpcionalTitle}
+                className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
               <label htmlFor="guardia-rate-unica" className="text-[9px] font-black text-blue-700 dark:text-blue-400 block mt-2 mb-1 uppercase tracking-widest">
                 {t.tarifaUnica}
               </label>
@@ -75,12 +78,14 @@ export function InstitutionEditForm({
               <label className="text-[9px] font-black text-amber-700 dark:text-amber-400 block mb-2 uppercase tracking-widest">
                 {t.procedimientoInterconsulta}
               </label>
+              <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5">{t.porProcedimiento}</label>
               <input type="text" inputMode="numeric" value={form.procedimientoRate} onChange={setField('procedimientoRate')}
-                placeholder={t.porProcedimiento} title={t.porProcedimientoTitle}
+                title={t.porProcedimientoTitle}
                 className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
+              <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 block mb-0.5 mt-1.5">{t.porInterconsulta}</label>
               <input type="text" inputMode="numeric" value={form.interconsultaRate} onChange={setField('interconsultaRate')}
-                placeholder={t.porInterconsulta} title={t.porInterconsultaTitle}
-                className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white mt-1.5" />
+                title={t.porInterconsultaTitle}
+                className="w-full bg-white dark:bg-slate-700 border border-slate-200 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
             </div>
           </div>
         )}
