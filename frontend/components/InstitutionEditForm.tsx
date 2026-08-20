@@ -26,11 +26,12 @@ export function InstitutionEditForm({
 
   return (
     <div className="space-y-3 p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-      <form action={formAction} className="space-y-3">
+      <div className="space-y-3">
         <input type="text" name="name" value={form.name} onChange={setField('name')}
           placeholder={isExtraMode ? t.nombrePagador : t.nombreInstitucion}
           title={isExtraMode ? t.nombrePagadorTitle : t.nombreInstitucionTitle}
           className="w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 font-bold text-sm text-slate-900 dark:text-white" />
+        <input type="hidden" name="color" value={form.color} />
 
         <InstitutionColorPicker
           value={form.color}
@@ -92,11 +93,17 @@ export function InstitutionEditForm({
           <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
             {t.cancelar}
           </Button>
-          <Button type="submit" size="sm" disabled={!form.name.trim() || isPending}>
+          <Button type="button" size="sm" disabled={!form.name.trim() || isPending}
+            onClick={() => {
+              const fd = new FormData();
+              fd.append('name', form.name);
+              fd.append('color', form.color);
+              formAction(fd);
+            }}>
             {isPending ? t.guardando : institution ? t.actualizar : t.crear}
           </Button>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
